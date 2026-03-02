@@ -1,6 +1,6 @@
 import { createContext, ReactNode, useContext, useMemo, useState } from 'react';
 
-type AuthMethod = 'email' | 'google' | null;
+type AuthMethod = 'email-signin' | 'email-signup' | 'google' | null;
 
 type OnboardingData = {
   authMethod: AuthMethod;
@@ -10,6 +10,7 @@ type OnboardingData = {
   gradYear: string;
   avatarUrl: string;
   emailVerified: boolean;
+  accessToken: string;
 };
 
 type OnboardingContextValue = {
@@ -26,6 +27,7 @@ const defaultData: OnboardingData = {
   gradYear: '',
   avatarUrl: '',
   emailVerified: false,
+  accessToken: '',
 };
 
 const OnboardingContext = createContext<OnboardingContextValue | null>(null);

@@ -1,41 +1,122 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { handleOAuthCallback, signInWithEmail } from '@/lib/api';
 import { useOnboarding } from '@/lib/onboarding-context';
 
 export default function AuthEntryScreen() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [googleTokenInput, setGoogleTokenInput] = useState('');
+  const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const { update, reset } = useOnboarding();
+
+  const handleSignin = async () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail.endsWith('.edu')) {
+      Alert.alert('Invalid email', 'Sign in requires a .edu college email.');
+      return;
+    }
+
+    if (!password.trim()) {
+      Alert.alert('Missing password', 'Please enter your password.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await signInWithEmail(normalizedEmail, password);
+      const auth = result.data;
+
+      if (!auth) {
+        throw new Error('No auth payload returned');
+      }
+
+      update({
+        authMethod: 'email-signin',
+        email: auth.user.email,
+        name: auth.user.name ?? '',
+        collegeName: auth.user.college_name ?? '',
+        gradYear: auth.user.grad_year ?? '',
+        avatarUrl: auth.user.avatar_url ?? '',
+        emailVerified: true,
+        accessToken: auth.access_token,
+      });
+      router.replace('/(tabs)');
+    } catch {
+      Alert.alert(
+        'Sign in route pending',
+        'Backend /api/auth/signin is not live yet. Please use Sign up or Google demo path for now.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleGoogle = async () => {
     setGoogleLoading(true);
 
-    // Placeholder Google profile until backend provides OAuth start endpoint.
-    update({
-      authMethod: 'google',
-      name: 'Saurav Ghimire',
-      email: 'sghimire@caldwell.edu',
-      avatarUrl:
-        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
-      emailVerified: true,
-    });
+    // Frontend-controlled token source until native OAuth exchange is wired.
+    const oauthToken =
+      googleTokenInput.trim() || process.env.EXPO_PUBLIC_GOOGLE_OAUTH_TOKEN || '';
 
-    setGoogleLoading(false);
-    router.push('/onboarding/profile-details');
+    if (!oauthToken) {
+      setGoogleLoading(false);
+      Alert.alert(
+        'Missing OAuth token',
+        'Paste a Google OAuth access token in the field below before continuing.',
+      );
+      return;
+    }
+
+    try {
+      const res = await handleOAuthCallback(oauthToken);
+      const payload = res.data;
+
+      if (!payload) {
+        throw new Error('Google callback payload missing');
+      }
+
+      const user = payload.user;
+      const accessToken = payload.session.access_token;
+      const hasRequiredProfile = Boolean(
+        user.name?.trim() && user.college_name?.trim() && user.grad_year?.trim(),
+      );
+
+      update({
+        authMethod: 'google',
+        name: user.name ?? '',
+        email: user.email,
+        avatarUrl: user.avatar_url ?? '',
+        collegeName: user.college_name ?? '',
+        gradYear: user.grad_year ?? '',
+        emailVerified: true,
+        accessToken,
+      });
+
+      setGoogleLoading(false);
+      if (hasRequiredProfile) {
+        router.replace('/(tabs)');
+      } else {
+        router.push('/onboarding/google-complete');
+      }
+      return;
+    } catch {
+      setGoogleLoading(false);
+      Alert.alert(
+        'Google sign-in failed',
+        'Backend rejected the token. Confirm it is a valid Google OAuth access token for a .edu account.',
+      );
+    }
   };
 
-  const handleEmailSignup = () => {
+  const handleSignup = () => {
     reset();
-    update({ authMethod: 'email' });
-    router.push('/onboarding/email-signup');
-  };
-
-  const handleEmailSignin = () => {
-    reset();
-    update({ authMethod: 'email' });
-    router.push('/onboarding/email-signin');
+    update({ authMethod: 'email-signup' });
+    router.push('/onboarding/signup');
   };
 
   return (
@@ -43,25 +124,58 @@ export default function AuthEntryScreen() {
       <SafeAreaView style={styles.safe}>
         <View style={styles.card}>
           <Text style={styles.title}>UniMarketplace</Text>
-          <Text style={styles.subtitle}>Buy and sell safely with verified college students</Text>
+          <Text style={styles.subtitle}>Returning Users</Text>
 
-          <Text style={styles.sectionLabel}>New here?</Text>
-          <Pressable style={styles.primaryBtn} onPress={handleGoogle}>
-            <Text style={styles.primaryText}>
+          <TextInput
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            placeholder="College email (.edu)"
+            placeholderTextColor="#99A4B8"
+            style={styles.input}
+          />
+
+          <TextInput
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            placeholder="Password"
+            placeholderTextColor="#99A4B8"
+            style={styles.input}
+          />
+
+          <Pressable style={styles.signinBtn} onPress={handleSignin}>
+            <Text style={styles.signinText}>{loading ? 'Signing In...' : 'Sign In'}</Text>
+          </Pressable>
+
+          <View style={styles.dividerWrap}>
+            <View style={styles.divider} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.divider} />
+          </View>
+
+          <Pressable style={styles.googleBtn} onPress={handleGoogle}>
+            <Text style={styles.googleText}>
               {googleLoading ? 'Connecting...' : 'Continue with Google'}
             </Text>
           </Pressable>
 
-          <Pressable style={styles.secondaryBtn} onPress={handleEmailSignup}>
-            <Text style={styles.secondaryText}>Sign up with College Email</Text>
-          </Pressable>
+          <TextInput
+            value={googleTokenInput}
+            onChangeText={setGoogleTokenInput}
+            autoCapitalize="none"
+            placeholder="Paste Google OAuth access token"
+            placeholderTextColor="#99A4B8"
+            style={styles.tokenInput}
+          />
 
-          <Text style={styles.sectionLabel}>Returning user?</Text>
-          <Pressable style={styles.signinBtn} onPress={handleEmailSignin}>
-            <Text style={styles.signinText}>Sign In with College Email</Text>
-          </Pressable>
-
-          <Text style={styles.caption}>Only .edu emails are allowed</Text>
+          <View style={styles.signupRow}>
+            <Text style={styles.signupHint}>Don&apos;t have an account?</Text>
+            <Pressable onPress={handleSignup}>
+              <Text style={styles.signupLink}> Signup</Text>
+            </Pressable>
+          </View>
         </View>
       </SafeAreaView>
     </LinearGradient>
@@ -73,74 +187,102 @@ const styles = StyleSheet.create({
   safe: { flex: 1, justifyContent: 'center', padding: 16 },
   card: {
     backgroundColor: '#F3F4F8',
-    borderRadius: 30,
+    borderRadius: 28,
     padding: 20,
+    borderWidth: 1,
+    borderColor: '#D7DAE2',
   },
   title: {
     color: '#1F2A44',
     textAlign: 'center',
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: '800',
   },
   subtitle: {
+    marginTop: 6,
+    color: '#60728F',
     textAlign: 'center',
-    marginTop: 8,
-    color: '#60728F',
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  sectionLabel: {
-    marginTop: 16,
-    color: '#60728F',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
   },
-  primaryBtn: {
-    marginTop: 8,
-    height: 54,
+  input: {
+    marginTop: 12,
+    height: 52,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#BBC0CD',
+    paddingHorizontal: 14,
+    fontSize: 15,
+    color: '#1E2942',
+    backgroundColor: '#F8F9FC',
+  },
+  signinBtn: {
+    marginTop: 14,
+    height: 52,
     borderRadius: 14,
     backgroundColor: '#6368E8',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  primaryText: {
+  signinText: {
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 16,
   },
-  secondaryBtn: {
-    marginTop: 10,
-    height: 54,
+  dividerWrap: {
+    marginTop: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#D2D6E0',
+  },
+  dividerText: {
+    color: '#7B879D',
+    fontSize: 13,
+  },
+  googleBtn: {
+    marginTop: 14,
+    height: 52,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: '#AAB0FA',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  secondaryText: {
-    color: '#5E64E8',
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  signinBtn: {
-    marginTop: 8,
-    height: 50,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#B9BEEA',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F8F8FD',
-  },
-  signinText: {
-    color: '#475070',
+  googleText: {
+    color: '#49557A',
     fontWeight: '700',
     fontSize: 15,
   },
-  caption: {
-    marginTop: 12,
-    textAlign: 'center',
+  tokenInput: {
+    marginTop: 10,
+    height: 50,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BBC0CD',
+    paddingHorizontal: 12,
+    color: '#1E2942',
+    fontSize: 13,
+    backgroundColor: '#F8F9FC',
+  },
+  signupRow: {
+    marginTop: 14,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  signupHint: {
     color: '#637898',
     fontSize: 13,
+  },
+  signupLink: {
+    color: '#6368E8',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

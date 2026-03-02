@@ -21,15 +21,15 @@ export type AuthUser = {
   name?: string;
   avatar_url?: string;
   college_name?: string;
+  grad_year?: string;
 };
 
-type CallbackResponse = ApiEnvelope<{
+export type AuthResult = {
   user: AuthUser;
-  session: {
-    access_token: string;
-    refresh_token?: string;
-  };
-}>;
+  access_token: string;
+  refresh_token?: string;
+  is_new_user?: boolean;
+};
 
 const DEFAULT_API_URL = 'http://localhost:3000';
 
@@ -71,23 +71,65 @@ export async function getMarketplaceItems(): Promise<BackendItem[]> {
   return payload.data as BackendItem[];
 }
 
-export async function requestEduVerificationCode(email: string) {
-  return request<ApiEnvelope<{ email: string }>>('/api/auth/email/request-code', {
-    method: 'POST',
-    body: JSON.stringify({ email }),
-  });
-}
-
-export async function verifyEduCode(email: string, code: string) {
-  return request<ApiEnvelope<{ verified: boolean }>>('/api/auth/email/verify-code', {
-    method: 'POST',
-    body: JSON.stringify({ email, code }),
-  });
-}
-
-export async function authCallback(accessToken: string, refreshToken?: string) {
-  return request<CallbackResponse>('/api/auth/callback', {
+// Existing backend route.
+export async function handleOAuthCallback(accessToken: string, refreshToken?: string) {
+  return request<
+    ApiEnvelope<{
+      user: AuthUser;
+      session: {
+        access_token: string;
+        refresh_token?: string;
+      };
+    }>
+  >('/api/auth/callback', {
     method: 'POST',
     body: JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }),
+  });
+}
+
+// Existing backend route.
+export async function getCurrentSession(accessToken: string) {
+  return request<ApiEnvelope<{ user: AuthUser }>>('/api/auth/session', {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+}
+
+// Placeholder route expected from backend team.
+export async function signInWithEmail(email: string, password: string) {
+  return request<ApiEnvelope<AuthResult>>('/api/auth/signin', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+// Placeholder route expected from backend team.
+export async function signUpWithEmail(payload: {
+  email: string;
+  password: string;
+  name: string;
+  college_name: string;
+  grad_year: string;
+  avatar_url?: string;
+}) {
+  return request<ApiEnvelope<AuthResult>>('/api/auth/signup', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+// Placeholder route expected from backend team.
+export async function completeGoogleProfile(payload: {
+  access_token: string;
+  name: string;
+  college_name: string;
+  grad_year: string;
+  avatar_url?: string;
+}) {
+  return request<ApiEnvelope<{ user: AuthUser }>>('/api/auth/google/complete-profile', {
+    method: 'POST',
+    body: JSON.stringify(payload),
   });
 }

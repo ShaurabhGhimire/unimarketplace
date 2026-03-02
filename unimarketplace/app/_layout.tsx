@@ -14,14 +14,18 @@ export default function RootLayout() {
       <OnboardingProvider>
         <Stack initialRouteName="onboarding/auth">
           <Stack.Screen name="onboarding/auth" options={{ headerShown: false }} />
-          <Stack.Screen name="onboarding/email-signup" options={{ headerShown: false }} />
-          <Stack.Screen name="onboarding/email-signin" options={{ headerShown: false }} />
-          <Stack.Screen name="onboarding/email-verify" options={{ headerShown: false }} />
-          <Stack.Screen name="onboarding/profile-details" options={{ headerShown: false }} />
-          <Stack.Screen name="onboarding/profile-complete" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding/signup" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding/google-complete" options={{ headerShown: false }} />
+
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="move-out-mode" options={{ headerShown: false }} />
           <Stack.Screen name="messages/[id]" options={{ headerShown: false }} />
+
+          <Stack.Screen name="onboarding/email-signin" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding/email-signup" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding/email-verify" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding/profile-details" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding/profile-complete" options={{ headerShown: false }} />
         </Stack>
       </OnboardingProvider>
       <StatusBar style="light" />
