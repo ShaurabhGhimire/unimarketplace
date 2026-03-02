@@ -17,11 +17,11 @@ export default function ProfileCompleteScreen() {
       />
 
       <View style={styles.checkCircle}>
-        <MaterialIcons name="done" size={54} color="#13233F" />
+        <MaterialIcons name="done" size={42} color="#13233F" />
       </View>
       <Text style={styles.heading}>You&apos;re All Set!</Text>
       <Text style={styles.body}>
-        Welcome to Campus Market, Saurav Ghimire! Start browsing listings from students at Caldwell
+        Welcome to UniMarketplace, Saurav Ghimire! Start browsing listings from students at Caldwell
         University.
       </Text>
       <Text style={styles.body}>Remember: Only buy/sell with verified students for safe transactions.</Text>
@@ -43,27 +43,27 @@ export default function ProfileCompleteScreen() {
 const styles = StyleSheet.create({
   checkCircle: {
     alignSelf: 'center',
-    marginTop: 28,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    marginTop: 14,
+    width: 86,
+    height: 86,
+    borderRadius: 43,
     backgroundColor: '#0FC38B',
     alignItems: 'center',
     justifyContent: 'center',
   },
   heading: {
-    marginTop: 22,
+    marginTop: 12,
     textAlign: 'center',
     color: '#1F2A44',
-    fontSize: 44,
+    fontSize: 32,
     fontWeight: '800',
   },
   body: {
-    marginTop: 14,
+    marginTop: 8,
     textAlign: 'center',
     color: '#5F7090',
-    fontSize: 17,
-    lineHeight: 34,
+    fontSize: 14,
+    lineHeight: 20,
   },
   flex1: {
     flex: 1,

@@ -21,7 +21,7 @@ export default function ProfileInfoScreen() {
           <Text style={styles.question}>?</Text>
         </LinearGradient>
         <Pressable style={styles.cameraButton}>
-          <MaterialIcons name="photo-camera" size={20} color="#7A7A7A" />
+          <MaterialIcons name="photo-camera" size={16} color="#7A7A7A" />
         </Pressable>
       </View>
 
@@ -32,7 +32,9 @@ export default function ProfileInfoScreen() {
       <Text style={styles.helper}>This name will be visible to other students</Text>
 
       <Pressable onPress={() => router.push('/onboarding/college-details')}>
-        <LinearGradient colors={['#CACACE', '#CACACE']} style={onboardingStyles.primaryButton}>
+        <LinearGradient
+          colors={['#CACACE', '#CACACE']}
+          style={[onboardingStyles.primaryButton, styles.compactContinue]}>
           <Text style={[onboardingStyles.primaryButtonText, styles.disabledText]}>Continue</Text>
         </LinearGradient>
       </Pressable>
@@ -42,29 +44,29 @@ export default function ProfileInfoScreen() {
 
 const styles = StyleSheet.create({
   avatarWrap: {
-    marginTop: 20,
+    marginTop: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarCircle: {
-    width: 138,
-    height: 138,
-    borderRadius: 69,
+    width: 104,
+    height: 104,
+    borderRadius: 52,
     alignItems: 'center',
     justifyContent: 'center',
   },
   question: {
     color: '#D7DAFF',
-    fontSize: 58,
-    lineHeight: 64,
+    fontSize: 42,
+    lineHeight: 48,
   },
   cameraButton: {
     position: 'absolute',
-    right: 86,
+    right: 102,
     bottom: 0,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: '#F3F3F3',
     alignItems: 'center',
     justifyContent: 'center',
@@ -73,14 +75,17 @@ const styles = StyleSheet.create({
   },
   input: {
     color: '#222F46',
-    fontSize: 18,
+    fontSize: 16,
     width: '100%',
   },
   helper: {
-    marginTop: 8,
+    marginTop: 6,
     textAlign: 'center',
     color: '#5F7090',
-    fontSize: 15,
+    fontSize: 13,
+  },
+  compactContinue: {
+    marginTop: 10,
   },
   disabledText: {
     color: '#9EA0A4',

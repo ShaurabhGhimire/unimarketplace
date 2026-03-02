@@ -8,7 +8,7 @@ import { OnboardingShell, StepIndicator, onboardingStyles } from '@/components/o
 
 export default function SelectCollegeScreen() {
   return (
-    <OnboardingShell title="Campus Market" subtitle="Verify your student email to continue">
+    <OnboardingShell title="UniMarketplace" subtitle="Verify your student email to continue">
       <Image
         source={{
           uri: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1200&q=80',
@@ -27,14 +27,16 @@ export default function SelectCollegeScreen() {
       <Text style={onboardingStyles.fieldLabel}>Select Your College *</Text>
       <View style={onboardingStyles.field}>
         <View style={styles.row}>
-          <MaterialIcons name="school" color="#8E8E8E" size={26} />
+          <MaterialIcons name="school" color="#8E8E8E" size={22} />
           <Text style={onboardingStyles.fieldText}>Caldwell University</Text>
         </View>
-        <MaterialIcons name="keyboard-arrow-down" color="#8E8E8E" size={26} />
+        <MaterialIcons name="keyboard-arrow-down" color="#8E8E8E" size={24} />
       </View>
 
       <Pressable onPress={() => router.push('/onboarding/verify-email')}>
-        <LinearGradient colors={['#6963E9', '#5E64E8']} style={onboardingStyles.primaryButton}>
+        <LinearGradient
+          colors={['#6963E9', '#5E64E8']}
+          style={[onboardingStyles.primaryButton, onboardingStyles.primaryButtonStandalone]}>
           <Text style={onboardingStyles.primaryButtonText}>Continue</Text>
         </LinearGradient>
       </Pressable>
@@ -44,10 +46,10 @@ export default function SelectCollegeScreen() {
 
 const styles = StyleSheet.create({
   heroImage: {
-    marginTop: 14,
+    marginTop: 10,
     width: '100%',
-    height: 208,
-    borderRadius: 42,
+    height: 166,
+    borderRadius: 26,
   },
   row: {
     flexDirection: 'row',
