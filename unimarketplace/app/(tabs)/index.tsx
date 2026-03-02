@@ -1,6 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Image } from 'expo-image';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Pressable,
   SafeAreaView,
@@ -12,20 +12,79 @@ import {
   View,
 } from 'react-native';
 
-import { categoryFilters, locationFilters, marketplaceItems } from '@/data/mock';
+import {
+  categoryFilters,
+  locationFilters,
+  marketplaceItems,
+  type MarketplaceItem,
+} from '@/data/mock';
+import { API_BASE_URL, getBackendHealth, getMarketplaceItems } from '@/lib/api';
 
 export default function BrowseScreen() {
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeLocation, setActiveLocation] = useState('All Colleges');
   const [moveOutDeals, setMoveOutDeals] = useState(false);
+  const [items, setItems] = useState<MarketplaceItem[]>(marketplaceItems);
+  const [apiStatus, setApiStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function bootstrap() {
+      try {
+        await getBackendHealth();
+        if (!mounted) return;
+        setApiStatus('online');
+      } catch {
+        if (!mounted) return;
+        setApiStatus('offline');
+        setItems(marketplaceItems);
+        return;
+      }
+
+      try {
+        const backendItems = await getMarketplaceItems();
+        if (!mounted) return;
+
+        if (backendItems.length > 0) {
+          const normalized = backendItems.map((item, index) => ({
+            id: item.id ?? `backend-${index}`,
+            title: item.title ?? 'Marketplace Item',
+            price: item.price ?? 0,
+            seller: item.seller ?? 'Campus Seller',
+            college: item.college ?? 'Your College',
+            imageUrl:
+              item.image_url ??
+              'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=900&q=80',
+            sellerAvatar:
+              item.seller_avatar ??
+              'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
+            daysLeft: item.days_left,
+          }));
+          setItems(normalized);
+        } else {
+          setItems(marketplaceItems);
+        }
+      } catch {
+        if (!mounted) return;
+        setItems(marketplaceItems);
+      }
+    }
+
+    bootstrap();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const filteredItems = useMemo(() => {
-    return marketplaceItems.filter((item) => {
+    return items.filter((item) => {
       const inQuery = item.title.toLowerCase().includes(query.toLowerCase());
       return inQuery;
     });
-  }, [query]);
+  }, [items, query]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -37,6 +96,14 @@ export default function BrowseScreen() {
               <MaterialIcons name="person" size={24} color="#7E7E7E" />
             </Pressable>
           </View>
+
+          <View style={styles.statusRow}>
+            <View style={[styles.statusDot, apiStatus === 'online' ? styles.statusOnline : styles.statusOffline]} />
+            <Text style={styles.statusText}>
+              Backend: {apiStatus === 'checking' ? 'Checking...' : apiStatus === 'online' ? 'Connected' : 'Offline (mock data)'}
+            </Text>
+          </View>
+          <Text style={styles.apiText}>{API_BASE_URL}</Text>
 
           <View style={styles.searchBar}>
             <MaterialIcons name="search" size={28} color="#7A869F" />
@@ -160,7 +227,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   heading: {
-    fontSize: 48 / 2,
+    fontSize: 24,
     fontWeight: '800',
     color: '#5F64E8',
   },
@@ -173,6 +240,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F9F9FB',
+  },
+  statusRow: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusOnline: {
+    backgroundColor: '#08B26B',
+  },
+  statusOffline: {
+    backgroundColor: '#D25353',
+  },
+  statusText: {
+    color: '#5B6F8D',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  apiText: {
+    marginTop: 2,
+    color: '#8794AA',
+    fontSize: 11,
   },
   searchBar: {
     marginTop: 18,
@@ -188,7 +282,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     marginLeft: 10,
-    fontSize: 34 > 30 ? 34 / 2 : 17,
+    fontSize: 17,
     color: '#243047',
   },
   inlineRow: {
@@ -257,7 +351,7 @@ const styles = StyleSheet.create({
   },
   moveOutText: {
     color: '#2D3951',
-    fontSize: 32 / 2,
+    fontSize: 16,
     fontWeight: '500',
   },
   metaRow: {
@@ -311,7 +405,7 @@ const styles = StyleSheet.create({
   },
   daysText: {
     color: '#FFFFFF',
-    fontSize: 16 / 2,
+    fontSize: 8,
     fontWeight: '700',
   },
   cardBody: {
@@ -319,7 +413,7 @@ const styles = StyleSheet.create({
   },
   itemTitle: {
     color: '#1E2942',
-    fontSize: 34 / 2,
+    fontSize: 17,
     fontWeight: '700',
     lineHeight: 24,
     minHeight: 50,
