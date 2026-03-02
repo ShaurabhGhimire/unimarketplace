@@ -1,7 +1,16 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ReactNode } from 'react';
-import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableWithoutFeedback,
+  View,
+} from 'react-native';
 
 const BRAND_BLUE = '#5F64E8';
 
@@ -25,21 +34,29 @@ export function OnboardingShell({
   return (
     <LinearGradient colors={['#5C63E8', '#8C59D5', '#E045A2']} style={styles.gradient}>
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.card}>
-          <LinearGradient colors={['#6963E9', '#D94EB1']} style={styles.logoCircle}>
-            <MaterialIcons name="school" color="#FFFFFF" size={38} />
-          </LinearGradient>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <KeyboardAvoidingView
+            style={styles.keyboardContainer}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <View style={styles.card}>
+              <LinearGradient colors={['#6963E9', '#D94EB1']} style={styles.logoCircle}>
+                <MaterialIcons name="school" color="#FFFFFF" size={38} />
+              </LinearGradient>
 
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.subtitle}>{subtitle}</Text>
+              <Text style={styles.title}>{title}</Text>
+              <Text style={styles.subtitle}>{subtitle}</Text>
 
-          {children}
+              {children}
 
-          <View style={styles.trustWrap}>
-            <Text style={styles.trustHeading}>🔒 College-verified students only</Text>
-            <Text style={styles.trustBody}>Safe, trusted transactions within your campus community</Text>
-          </View>
-        </View>
+              <View style={styles.trustWrap}>
+                <Text style={styles.trustHeading}>🔒 College-verified students only</Text>
+                <Text style={styles.trustBody}>
+                  Safe, trusted transactions within your campus community
+                </Text>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -160,6 +177,9 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     paddingHorizontal: 18,
+  },
+  keyboardContainer: {
+    flex: 1,
     justifyContent: 'center',
   },
   card: {
