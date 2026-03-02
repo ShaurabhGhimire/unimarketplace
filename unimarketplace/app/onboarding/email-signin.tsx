@@ -1,66 +1,60 @@
-import { useLocalSearchParams, router } from 'expo-router';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { verifyEduCode } from '@/lib/api';
+import { requestEduVerificationCode } from '@/lib/api';
 import { useOnboarding } from '@/lib/onboarding-context';
 
-export default function EmailVerifyScreen() {
-  const [code, setCode] = useState('');
+export default function EmailSigninScreen() {
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const { mode } = useLocalSearchParams<{ mode?: 'signup' | 'signin' }>();
-  const { data, update } = useOnboarding();
+  const { update, reset } = useOnboarding();
 
-  const handleVerify = async () => {
-    if (code.trim().length < 4) {
-      Alert.alert('Invalid code', 'Please enter the verification code.');
+  const handleSendCode = async () => {
+    const normalized = email.trim().toLowerCase();
+
+    if (!normalized.endsWith('.edu')) {
+      Alert.alert('Invalid email', 'Please use your college .edu email address.');
       return;
     }
 
     setLoading(true);
     try {
-      await verifyEduCode(data.email, code.trim());
+      await requestEduVerificationCode(normalized);
     } catch {
-      if (code.trim() !== '123456') {
-        setLoading(false);
-        Alert.alert('Verification failed', 'Use 123456 in demo mode.');
-        return;
-      }
+      Alert.alert('Using demo mode', 'Email code endpoint is not live yet. Use code 123456.');
+    } finally {
+      setLoading(false);
     }
 
-    update({ emailVerified: true });
-    setLoading(false);
-
-    if (mode === 'signin') {
-      router.replace('/(tabs)');
-      return;
-    }
-
-    router.push('/onboarding/profile-details');
+    reset();
+    update({ email: normalized, authMethod: 'email' });
+    router.push('/onboarding/email-verify?mode=signin');
   };
 
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.card}>
-        <Text style={styles.title}>Enter Verification Code</Text>
-        <Text style={styles.subtitle}>Code sent to {data.email || 'your .edu email'}</Text>
+        <Text style={styles.title}>Sign In</Text>
+        <Text style={styles.subtitle}>Returning users can sign in with college email</Text>
 
-        <Text style={styles.label}>Verification Code *</Text>
+        <Text style={styles.label}>College Email *</Text>
         <TextInput
-          value={code}
-          onChangeText={setCode}
-          keyboardType="number-pad"
           style={styles.input}
-          placeholder="123456"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          placeholder="you@college.edu"
           placeholderTextColor="#98A3B5"
+          value={email}
+          onChangeText={setEmail}
         />
 
         <View style={styles.row}>
           <Pressable style={styles.backBtn} onPress={() => router.back()}>
             <Text style={styles.backText}>Back</Text>
           </Pressable>
-          <Pressable style={styles.nextBtn} onPress={handleVerify}>
-            <Text style={styles.nextText}>{loading ? 'Verifying...' : 'Verify Email'}</Text>
+          <Pressable style={styles.nextBtn} onPress={handleSendCode}>
+            <Text style={styles.nextText}>{loading ? 'Sending...' : 'Send Sign-In Code'}</Text>
           </Pressable>
         </View>
       </View>

@@ -32,6 +32,12 @@ export default function AuthEntryScreen() {
     router.push('/onboarding/email-signup');
   };
 
+  const handleEmailSignin = () => {
+    reset();
+    update({ authMethod: 'email' });
+    router.push('/onboarding/email-signin');
+  };
+
   return (
     <LinearGradient colors={['#5C63E8', '#8C59D5', '#E045A2']} style={styles.gradient}>
       <SafeAreaView style={styles.safe}>
@@ -39,6 +45,7 @@ export default function AuthEntryScreen() {
           <Text style={styles.title}>UniMarketplace</Text>
           <Text style={styles.subtitle}>Buy and sell safely with verified college students</Text>
 
+          <Text style={styles.sectionLabel}>New here?</Text>
           <Pressable style={styles.primaryBtn} onPress={handleGoogle}>
             <Text style={styles.primaryText}>
               {googleLoading ? 'Connecting...' : 'Continue with Google'}
@@ -47,6 +54,11 @@ export default function AuthEntryScreen() {
 
           <Pressable style={styles.secondaryBtn} onPress={handleEmailSignup}>
             <Text style={styles.secondaryText}>Sign up with College Email</Text>
+          </Pressable>
+
+          <Text style={styles.sectionLabel}>Returning user?</Text>
+          <Pressable style={styles.signinBtn} onPress={handleEmailSignin}>
+            <Text style={styles.signinText}>Sign In with College Email</Text>
           </Pressable>
 
           <Text style={styles.caption}>Only .edu emails are allowed</Text>
@@ -77,8 +89,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
+  sectionLabel: {
+    marginTop: 16,
+    color: '#60728F',
+    fontSize: 13,
+    fontWeight: '600',
+  },
   primaryBtn: {
-    marginTop: 24,
+    marginTop: 8,
     height: 54,
     borderRadius: 14,
     backgroundColor: '#6368E8',
@@ -103,6 +121,21 @@ const styles = StyleSheet.create({
     color: '#5E64E8',
     fontWeight: '700',
     fontSize: 16,
+  },
+  signinBtn: {
+    marginTop: 8,
+    height: 50,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#B9BEEA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8F8FD',
+  },
+  signinText: {
+    color: '#475070',
+    fontWeight: '700',
+    fontSize: 15,
   },
   caption: {
     marginTop: 12,

@@ -15,6 +15,7 @@ export default function RootLayout() {
         <Stack initialRouteName="onboarding/auth">
           <Stack.Screen name="onboarding/auth" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding/email-signup" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding/email-signin" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding/email-verify" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding/profile-details" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding/profile-complete" options={{ headerShown: false }} />
