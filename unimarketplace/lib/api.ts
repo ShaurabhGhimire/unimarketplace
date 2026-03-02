@@ -128,7 +128,7 @@ export async function completeGoogleProfile(payload: {
   grad_year: string;
   avatar_url?: string;
 }) {
-  return request<ApiEnvelope<{ user: AuthUser }>>('/api/auth/google/complete-profile', {
+  return request<ApiEnvelope<{ user: AuthUser }>>('/api/auth/update-profilen', {
     method: 'POST',
     body: JSON.stringify(payload),
   });

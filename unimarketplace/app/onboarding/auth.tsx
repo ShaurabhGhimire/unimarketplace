@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { Alert, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { handleOAuthCallback, signInWithEmail } from '@/lib/api';
+import { saveAccessToken } from '@/lib/auth-storage';
 import { useOnboarding } from '@/lib/onboarding-context';
+import { getGoogleAccessTokenViaSupabase } from '@/lib/supabase-auth';
 
 export default function AuthEntryScreen() {
   const [email, setEmail] = useState('');
@@ -35,6 +37,7 @@ export default function AuthEntryScreen() {
         throw new Error('No auth payload returned');
       }
 
+      await saveAccessToken(auth.access_token);
       update({
         authMethod: 'email-signin',
         email: auth.user.email,
@@ -59,15 +62,17 @@ export default function AuthEntryScreen() {
   const handleGoogle = async () => {
     setGoogleLoading(true);
 
-    // Frontend-controlled token source until native OAuth exchange is wired.
+    const supabaseToken = await getGoogleAccessTokenViaSupabase();
+
+    // Frontend-controlled token fallback while OAuth dependencies/routes are still being finalized.
     const oauthToken =
-      googleTokenInput.trim() || process.env.EXPO_PUBLIC_GOOGLE_OAUTH_TOKEN || '';
+      supabaseToken || googleTokenInput.trim() || process.env.EXPO_PUBLIC_GOOGLE_OAUTH_TOKEN || '';
 
     if (!oauthToken) {
       setGoogleLoading(false);
       Alert.alert(
         'Missing OAuth token',
-        'Paste a Google OAuth access token in the field below before continuing.',
+        'Either configure Supabase env + client or paste a Google OAuth access token below.',
       );
       return;
     }
@@ -86,6 +91,7 @@ export default function AuthEntryScreen() {
         user.name?.trim() && user.college_name?.trim() && user.grad_year?.trim(),
       );
 
+      await saveAccessToken(accessToken);
       update({
         authMethod: 'google',
         name: user.name ?? '',
@@ -108,7 +114,7 @@ export default function AuthEntryScreen() {
       setGoogleLoading(false);
       Alert.alert(
         'Google sign-in failed',
-        'Backend rejected the token. Confirm it is a valid Google OAuth access token for a .edu account.',
+        'Backend rejected the token. Confirm it is valid and tied to a .edu Google account.',
       );
     }
   };
@@ -165,7 +171,7 @@ export default function AuthEntryScreen() {
             value={googleTokenInput}
             onChangeText={setGoogleTokenInput}
             autoCapitalize="none"
-            placeholder="Paste Google OAuth access token"
+            placeholder="Optional: paste Google OAuth access token"
             placeholderTextColor="#99A4B8"
             style={styles.tokenInput}
           />

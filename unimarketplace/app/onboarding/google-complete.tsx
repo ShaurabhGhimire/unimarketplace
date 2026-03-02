@@ -5,6 +5,7 @@ import { Alert, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-na
 
 import { gradYears, usColleges } from '@/data/colleges';
 import { completeGoogleProfile } from '@/lib/api';
+import { saveAccessToken } from '@/lib/auth-storage';
 import { useOnboarding } from '@/lib/onboarding-context';
 
 export default function GoogleCompleteScreen() {
@@ -24,13 +25,14 @@ export default function GoogleCompleteScreen() {
         avatar_url: data.avatarUrl || undefined,
       });
 
+      await saveAccessToken(data.accessToken);
       update({ collegeName: college, gradYear });
       router.replace('/(tabs)');
     } catch {
       update({ collegeName: college, gradYear });
       Alert.alert(
         'Google profile route pending',
-        'Backend /api/auth/google/complete-profile is not live yet. Continuing in frontend demo mode.',
+        'Backend /api/auth/update-profilen is not live yet. Continuing in frontend demo mode.',
       );
       router.replace('/(tabs)');
     } finally {

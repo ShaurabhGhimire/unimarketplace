@@ -5,6 +5,7 @@ import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput
 
 import { gradYears, usColleges } from '@/data/colleges';
 import { signUpWithEmail } from '@/lib/api';
+import { saveAccessToken } from '@/lib/auth-storage';
 import { useOnboarding } from '@/lib/onboarding-context';
 
 export default function SignupScreen() {
@@ -51,6 +52,7 @@ export default function SignupScreen() {
         throw new Error('Signup payload missing');
       }
 
+      await saveAccessToken(auth.access_token);
       update({
         authMethod: 'email-signup',
         name: auth.user.name ?? name.trim(),
