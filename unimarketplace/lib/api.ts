@@ -15,6 +15,22 @@ type ApiEnvelope<T> = {
   data?: T;
 };
 
+export type AuthUser = {
+  id: string;
+  email: string;
+  name?: string;
+  avatar_url?: string;
+  college_name?: string;
+};
+
+type CallbackResponse = ApiEnvelope<{
+  user: AuthUser;
+  session: {
+    access_token: string;
+    refresh_token?: string;
+  };
+}>;
+
 const DEFAULT_API_URL = 'http://localhost:3000';
 
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? DEFAULT_API_URL;
@@ -28,11 +44,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     },
   });
 
+  const body = (await response.json().catch(() => ({}))) as T;
+
   if (!response.ok) {
     throw new Error(`HTTP ${response.status} for ${path}`);
   }
 
-  return (await response.json()) as T;
+  return body;
 }
 
 export async function getBackendHealth() {
@@ -51,4 +69,25 @@ export async function getMarketplaceItems(): Promise<BackendItem[]> {
   }
 
   return payload.data as BackendItem[];
+}
+
+export async function requestEduVerificationCode(email: string) {
+  return request<ApiEnvelope<{ email: string }>>('/api/auth/email/request-code', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function verifyEduCode(email: string, code: string) {
+  return request<ApiEnvelope<{ verified: boolean }>>('/api/auth/email/verify-code', {
+    method: 'POST',
+    body: JSON.stringify({ email, code }),
+  });
+}
+
+export async function authCallback(accessToken: string, refreshToken?: string) {
+  return request<CallbackResponse>('/api/auth/callback', {
+    method: 'POST',
+    body: JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }),
+  });
 }

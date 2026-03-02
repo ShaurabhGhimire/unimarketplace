@@ -1,71 +1,65 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
-import { OnboardingShell, StepIndicator, onboardingStyles } from '@/components/onboarding-shell';
+import { useOnboarding } from '@/lib/onboarding-context';
 
 export default function ProfileCompleteScreen() {
+  const { data } = useOnboarding();
+
   return (
-    <OnboardingShell title="Complete Your Profile" subtitle="">
-      <StepIndicator
-        steps={[
-          { id: '1', label: 'Profile Info', state: 'done' },
-          { id: '2', label: 'College Details', state: 'done' },
-          { id: '3', label: 'Complete', state: 'active' },
-        ]}
-      />
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.card}>
+        <Text style={styles.title}>You&apos;re all set</Text>
+        <Text style={styles.subtitle}>Welcome to UniMarketplace</Text>
 
-      <View style={styles.checkCircle}>
-        <MaterialIcons name="done" size={42} color="#13233F" />
-      </View>
-      <Text style={styles.heading}>You&apos;re All Set!</Text>
-      <Text style={styles.body}>
-        Welcome to UniMarketplace, Saurav Ghimire! Start browsing listings from students at Caldwell
-        University.
-      </Text>
-      <Text style={styles.body}>Remember: Only buy/sell with verified students for safe transactions.</Text>
+        <View style={styles.summary}>
+          <Text style={styles.item}>Name: {data.name || '-'}</Text>
+          <Text style={styles.item}>College: {data.collegeName || '-'}</Text>
+          <Text style={styles.item}>Email: {data.email || '-'}</Text>
+          <Text style={styles.item}>Grad Year: {data.gradYear || '-'}</Text>
+        </View>
 
-      <View style={onboardingStyles.rowButtons}>
-        <Pressable style={onboardingStyles.secondaryButton} onPress={() => router.back()}>
-          <Text style={onboardingStyles.secondaryButtonText}>Back</Text>
-        </Pressable>
-        <Pressable onPress={() => router.replace('/(tabs)')} style={styles.flex1}>
-          <LinearGradient colors={['#6963E9', '#5E64E8']} style={onboardingStyles.primaryButton}>
-            <Text style={onboardingStyles.primaryButtonText}>Get Started</Text>
+        <Pressable onPress={() => router.replace('/(tabs)')}>
+          <LinearGradient colors={['#6963E9', '#5E64E8']} style={styles.button}>
+            <Text style={styles.buttonText}>Enter Marketplace</Text>
           </LinearGradient>
         </Pressable>
       </View>
-    </OnboardingShell>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  checkCircle: {
-    alignSelf: 'center',
-    marginTop: 14,
-    width: 86,
-    height: 86,
-    borderRadius: 43,
-    backgroundColor: '#0FC38B',
+  safe: { flex: 1, backgroundColor: '#EDEEF2', justifyContent: 'center', padding: 16 },
+  card: {
+    backgroundColor: '#F6F6F8',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#DBDDE4',
+    padding: 18,
+  },
+  title: { color: '#1F2A44', fontSize: 28, fontWeight: '800', textAlign: 'center' },
+  subtitle: { marginTop: 6, color: '#60728F', fontSize: 15, textAlign: 'center' },
+  summary: {
+    marginTop: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#CCD3E1',
+    padding: 12,
+    gap: 6,
+  },
+  item: { color: '#1F2A44', fontSize: 14 },
+  button: {
+    marginTop: 16,
+    height: 54,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heading: {
-    marginTop: 12,
-    textAlign: 'center',
-    color: '#1F2A44',
-    fontSize: 32,
-    fontWeight: '800',
-  },
-  body: {
-    marginTop: 8,
-    textAlign: 'center',
-    color: '#5F7090',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  flex1: {
-    flex: 1,
+  buttonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 16,
   },
 });
