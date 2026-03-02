@@ -18,6 +18,8 @@ export default function RootLayout() {
         <Stack.Screen name="onboarding/college-details" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding/profile-complete" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="move-out-mode" options={{ headerShown: false }} />
+        <Stack.Screen name="messages/[id]" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="light" />
     </ThemeProvider>

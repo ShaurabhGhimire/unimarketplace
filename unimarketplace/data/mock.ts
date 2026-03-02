@@ -9,6 +9,24 @@ export type MarketplaceItem = {
   daysLeft?: string;
 };
 
+export type MessageThread = {
+  id: string;
+  userName: string;
+  avatar: string;
+  listingTitle: string;
+  listingImage: string;
+  lastMessage: string;
+  updatedAt: string;
+  unreadCount: number;
+};
+
+export type ChatMessage = {
+  id: string;
+  sender: 'me' | 'other';
+  text: string;
+  time: string;
+};
+
 export const categoryFilters = [
   { id: 'all', label: 'All', icon: 'home' },
   { id: 'furniture', label: 'Furniture', icon: 'chair' },
@@ -68,29 +86,50 @@ export const marketplaceItems: MarketplaceItem[] = [
   },
 ];
 
-export const inboxThreads = [
+export const messageThreads: MessageThread[] = [
   {
     id: 't1',
-    buyerName: 'Ariana',
+    userName: 'Sarah Chen',
+    avatar:
+      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80',
     listingTitle: 'IKEA Desk - Perfect for Studying',
-    lastMessage: 'Can you meet near the library at 4pm?',
-    unread: true,
-    updatedAt: '11:42 AM',
+    listingImage:
+      'https://images.unsplash.com/photo-1616627453385-7087e8d3f8f0?auto=format&fit=crop&w=400&q=80',
+    lastMessage: "Yes, it's still available! When can you pick it up?",
+    updatedAt: '04:30 AM',
+    unreadCount: 1,
   },
   {
     id: 't2',
-    buyerName: 'Daniel',
+    userName: 'Alex Kim',
+    avatar:
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
     listingTitle: 'MacBook Pro 2021 14"',
-    lastMessage: 'Would you take $1100 if I pick up today?',
-    unread: false,
-    updatedAt: 'Yesterday',
-  },
-  {
-    id: 't3',
-    buyerName: 'Sofia',
-    listingTitle: 'Indoor Plants + Pot Set',
-    lastMessage: 'Still available?',
-    unread: false,
-    updatedAt: 'Fri',
+    listingImage:
+      'https://images.unsplash.com/photo-1517336714739-489689fd1ca8?auto=format&fit=crop&w=400&q=80',
+    lastMessage: 'Thanks for asking! No scratches at all.',
+    updatedAt: '01:45 PM',
+    unreadCount: 0,
   },
 ];
+
+export const threadMessages: Record<string, ChatMessage[]> = {
+  t1: [
+    { id: 'm1', sender: 'other', text: 'Hi! Is this still available?', time: '04:00 AM' },
+    {
+      id: 'm2',
+      sender: 'me',
+      text: "Yes, it's still available! When can you pick it up?",
+      time: '04:30 AM',
+    },
+    { id: 'm3', sender: 'other', text: 'Great! How about tomorrow afternoon?', time: '04:35 AM' },
+  ],
+  t2: [
+    {
+      id: 'm4',
+      sender: 'other',
+      text: 'Thanks for asking! No scratches at all.',
+      time: '01:45 PM',
+    },
+  ],
+};
