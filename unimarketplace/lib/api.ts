@@ -31,6 +31,35 @@ export type AuthResult = {
   is_new_user?: boolean;
 };
 
+export type ListingRecord = {
+  id: string;
+  seller_id: string;
+  college_id: string;
+  category_id: string;
+  title: string;
+  description: string;
+  price: number;
+  condition: 'new' | 'like_new' | 'good' | 'fair' | 'poor';
+  status: 'active' | 'sold' | 'expired' | 'deleted';
+  is_urgent: boolean;
+  move_out_deadline: string | null;
+  images: string[];
+  views_count: number;
+  favorites_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreateListingPayload = {
+  title: string;
+  description: string;
+  price: number;
+  category: string;
+  condition: string;
+  move_out_date?: string | null;
+  images?: string[];
+};
+
 const DEFAULT_API_URL = 'http://localhost:3000';
 
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? DEFAULT_API_URL;
@@ -57,6 +86,7 @@ export async function getBackendHealth() {
   return request<{ status: string; message: string; timestamp: string }>('/health');
 }
 
+// Legacy placeholder route kept for compatibility with older local backend builds.
 export async function getMarketplaceItems(): Promise<BackendItem[]> {
   const payload = await request<ApiEnvelope<unknown>>('/api/items');
 
@@ -69,6 +99,34 @@ export async function getMarketplaceItems(): Promise<BackendItem[]> {
   }
 
   return payload.data as BackendItem[];
+}
+
+export async function getListings(accessToken: string): Promise<ListingRecord[]> {
+  const payload = await request<ApiEnvelope<{ listings?: ListingRecord[] }>>(
+    '/api/listings/get-all-listings',
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+
+  if (payload.status !== 'success') {
+    return [];
+  }
+
+  return payload.data?.listings ?? [];
+}
+
+export async function createListing(accessToken: string, payload: CreateListingPayload) {
+  return request<ApiEnvelope<{ listing: ListingRecord }>>('/api/listings/create-listing', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(payload),
+  });
 }
 
 // Existing backend route.

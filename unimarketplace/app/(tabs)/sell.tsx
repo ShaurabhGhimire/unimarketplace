@@ -2,6 +2,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
+  Alert,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -12,8 +13,11 @@ import {
   View,
 } from 'react-native';
 
-const categories = ['Furniture', 'Electronics', 'Books', 'Kitchen', 'Dorm'];
-const conditions = ['Like New', 'Good', 'Fair'];
+import { getAccessToken } from '@/lib/auth-storage';
+import { createListing } from '@/lib/api';
+
+const categories = ['Furniture', 'Electronics', 'Books', 'Kitchen', 'Decor', 'Clothing', 'Sports', 'Other'];
+const conditions = ['New', 'Like New', 'Good', 'Fair'];
 
 export default function SellScreen() {
   const [title, setTitle] = useState('');
@@ -22,15 +26,68 @@ export default function SellScreen() {
   const [category, setCategory] = useState('Furniture');
   const [condition, setCondition] = useState('Good');
   const [moveOutMode, setMoveOutMode] = useState(false);
+  const [imageUrls, setImageUrls] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const canPost = useMemo(() => {
     return title.trim().length > 0 && description.trim().length > 0 && Number(price) > 0;
   }, [description, price, title]);
 
+  const handleSubmit = async () => {
+    if (!canPost || loading) {
+      return;
+    }
+
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      Alert.alert('Sign-in required', 'Authenticate first so the backend can create the listing under your account.');
+      return;
+    }
+
+    const images = imageUrls
+      .split('\n')
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    setLoading(true);
+    try {
+      await createListing(accessToken, {
+        title: title.trim(),
+        description: description.trim(),
+        price: Number(price),
+        category,
+        condition,
+        move_out_date: moveOutMode ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() : null,
+        images,
+      });
+
+      Alert.alert('Listing created', 'Your listing was sent to the backend listings route.', [
+        {
+          text: 'View Browse',
+          onPress: () => router.replace('/'),
+        },
+      ]);
+      setTitle('');
+      setDescription('');
+      setPrice('');
+      setCategory('Furniture');
+      setCondition('Good');
+      setMoveOutMode(false);
+      setImageUrls('');
+    } catch {
+      Alert.alert(
+        'Create listing failed',
+        'The backend rejected the request. Confirm your profile has a college_id and that your token is still valid.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <Pressable style={styles.back}>
+        <Pressable style={styles.back} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={30} color="#79808B" />
         </Pressable>
         <Text style={styles.headerTitle}>Create Listing</Text>
@@ -39,11 +96,20 @@ export default function SellScreen() {
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Photos</Text>
-          <Pressable style={styles.uploadBox}>
+          <View style={styles.uploadBox}>
             <MaterialIcons name="cloud-upload" size={22} color="#646AE8" />
-            <Text style={styles.uploadText}>Upload Photos</Text>
-          </Pressable>
-          <Text style={styles.helper}>Add up to 5 photos. First photo will be the cover image.</Text>
+            <Text style={styles.uploadText}>Paste Supabase image URLs</Text>
+          </View>
+          <TextInput
+            value={imageUrls}
+            onChangeText={setImageUrls}
+            style={[styles.input, styles.description, styles.imagesInput]}
+            multiline
+            textAlignVertical="top"
+            placeholder="One public image URL per line"
+            placeholderTextColor="#9AA3B0"
+          />
+          <Text style={styles.helper}>Backend expects `images` as an array of URLs. Upload to Supabase Storage first, then paste the public URLs here.</Text>
         </View>
 
         <View style={styles.card}>
@@ -54,7 +120,7 @@ export default function SellScreen() {
             value={title}
             onChangeText={setTitle}
             style={styles.input}
-            placeholder=""
+            placeholder="Vintage mini fridge"
             placeholderTextColor="#9AA3B0"
           />
 
@@ -65,6 +131,8 @@ export default function SellScreen() {
             style={[styles.input, styles.description]}
             multiline
             textAlignVertical="top"
+            placeholder="Add condition, pickup details, and what is included"
+            placeholderTextColor="#9AA3B0"
           />
 
           <Text style={styles.fieldLabel}>Price *</Text>
@@ -115,13 +183,12 @@ export default function SellScreen() {
           </View>
 
           <Text style={styles.moveOutCopy}>
-            Enable this if you&apos;re moving out soon. Listings with move-out urgency get highlighted
-            and attract more buyers!
+            Enable this if you&apos;re moving out soon. The backend will mark the listing urgent and attach a move-out deadline.
           </Text>
 
           <Pressable style={styles.modeBtn} onPress={() => router.push('/move-out-mode')}>
             <Text style={styles.modeBtnText}>
-              {moveOutMode ? 'Move-Out Mode Enabled' : 'Enable Move-Out Mode'}
+              {moveOutMode ? 'Move-Out Mode Enabled' : 'Review Move-Out Mode'}
             </Text>
           </Pressable>
 
@@ -131,9 +198,11 @@ export default function SellScreen() {
           </View>
         </View>
 
-        <Pressable style={[styles.postBtn, canPost ? styles.postEnabled : styles.postDisabled]}>
+        <Pressable
+          style={[styles.postBtn, canPost ? styles.postEnabled : styles.postDisabled]}
+          onPress={handleSubmit}>
           <Text style={[styles.postText, canPost ? styles.postEnabledText : styles.postDisabledText]}>
-            Post Listing
+            {loading ? 'Posting Listing...' : 'Post Listing'}
           </Text>
         </Pressable>
 
@@ -165,7 +234,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 42 / 2,
+    fontSize: 21,
     fontWeight: '800',
     color: '#202A3E',
   },
@@ -182,7 +251,7 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   sectionTitle: {
-    fontSize: 44 / 2,
+    fontSize: 22,
     fontWeight: '800',
     color: '#202A3E',
   },
@@ -192,11 +261,12 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     borderColor: '#AFB2FA',
     borderRadius: 16,
-    height: 130,
+    minHeight: 76,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
+    paddingHorizontal: 16,
   },
   uploadText: {
     fontSize: 17,
@@ -206,7 +276,8 @@ const styles = StyleSheet.create({
   helper: {
     marginTop: 12,
     color: '#647694',
-    fontSize: 30 / 2,
+    fontSize: 15,
+    lineHeight: 22,
   },
   fieldLabel: {
     marginTop: 14,
@@ -217,13 +288,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     backgroundColor: '#F6F6F8',
     color: '#5E7192',
-    fontSize: 16 / 2 * 2,
+    fontSize: 16,
   },
   input: {
     borderWidth: 1,
     borderColor: '#B8BDC8',
     borderRadius: 16,
-    height: 76,
+    minHeight: 76,
     paddingHorizontal: 16,
     color: '#1E2942',
     fontSize: 18,
@@ -232,6 +303,10 @@ const styles = StyleSheet.create({
   description: {
     minHeight: 170,
     paddingTop: 18,
+  },
+  imagesInput: {
+    marginTop: 12,
+    minHeight: 130,
   },
   inputRow: {
     borderWidth: 1,
@@ -245,14 +320,14 @@ const styles = StyleSheet.create({
   },
   dollar: {
     color: '#7A7A7A',
-    fontSize: 40 / 2,
+    fontSize: 20,
     fontWeight: '700',
     marginRight: 12,
   },
   priceInput: {
     flex: 1,
     color: '#1E2942',
-    fontSize: 32 / 2,
+    fontSize: 16,
   },
   select: {
     borderWidth: 1,
@@ -287,14 +362,14 @@ const styles = StyleSheet.create({
   },
   optionalText: {
     color: '#1D1300',
-    fontSize: 31 / 2,
+    fontSize: 15,
     fontWeight: '500',
   },
   moveOutCopy: {
     marginTop: 12,
     color: '#5E7192',
-    fontSize: 35 / 2,
-    lineHeight: 31,
+    fontSize: 16,
+    lineHeight: 26,
   },
   modeBtn: {
     marginTop: 16,
@@ -318,11 +393,12 @@ const styles = StyleSheet.create({
   },
   switchLabel: {
     color: '#687A96',
-    fontSize: 14,
+    fontSize: 17,
+    fontWeight: '600',
   },
   postBtn: {
     height: 62,
-    borderRadius: 16,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -330,23 +406,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#646AE8',
   },
   postDisabled: {
-    backgroundColor: '#D0D1D5',
+    backgroundColor: '#C6CBDA',
   },
   postText: {
-    fontSize: 35 / 2,
+    fontSize: 17,
     fontWeight: '700',
   },
   postEnabledText: {
     color: '#FFFFFF',
   },
   postDisabledText: {
-    color: '#9E9EA2',
+    color: '#7B8597',
   },
   disclaimer: {
+    color: '#6A7890',
+    fontSize: 14,
+    lineHeight: 21,
     textAlign: 'center',
-    color: '#627592',
-    fontSize: 16,
-    lineHeight: 31,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
   },
 });
