@@ -64,10 +64,10 @@ export default function SignupScreen() {
         accessToken: auth.access_token,
       });
       router.replace('/(tabs)');
-    } catch {
+    } catch (err) {
       Alert.alert(
-        'Signup route pending',
-        'Backend /api/auth/signup is not live yet. UI/state are ready and will connect once endpoint is available.',
+        'Signup failed',
+        err instanceof Error ? err.message : 'Something went wrong. Please try again.',
       );
     } finally {
       setLoading(false);
