@@ -101,16 +101,31 @@ export async function getMarketplaceItems(): Promise<BackendItem[]> {
   return payload.data as BackendItem[];
 }
 
-export async function getListings(accessToken: string): Promise<ListingRecord[]> {
-  const payload = await request<ApiEnvelope<{ listings?: ListingRecord[] }>>(
-    '/api/listings/get-all-listings',
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+export type ListingFilters = {
+  category?: string;
+  condition?: string;
+  min_price?: number;
+  max_price?: number;
+  q?: string;
+};
+
+export async function getListings(accessToken: string, filters?: ListingFilters): Promise<ListingRecord[]> {
+  const params = new URLSearchParams();
+  if (filters?.category && filters.category !== 'all') params.set('category', filters.category);
+  if (filters?.condition) params.set('condition', filters.condition);
+  if (filters?.min_price != null) params.set('min_price', String(filters.min_price));
+  if (filters?.max_price != null) params.set('max_price', String(filters.max_price));
+  if (filters?.q) params.set('q', filters.q);
+
+  const qs = params.toString();
+  const path = `/api/listings/get-all-listings${qs ? `?${qs}` : ''}`;
+
+  const payload = await request<ApiEnvelope<{ listings?: ListingRecord[] }>>(path, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
     },
-  );
+  });
 
   if (payload.status !== 'success') {
     return [];
@@ -155,6 +170,20 @@ export async function getCurrentSession(accessToken: string) {
   });
 }
 
+export async function requestEduVerificationCode(email: string) {
+  return request<ApiEnvelope<{ message: string }>>('/api/auth/request-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function verifyEduCode(email: string, token: string) {
+  return request<ApiEnvelope<AuthResult>>('/api/auth/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email, token }),
+  });
+}
+
 // Placeholder route expected from backend team.
 export async function signInWithEmail(email: string, password: string) {
   return request<ApiEnvelope<AuthResult>>('/api/auth/signin', {
@@ -186,7 +215,7 @@ export async function completeGoogleProfile(payload: {
   grad_year: string;
   avatar_url?: string;
 }) {
-  return request<ApiEnvelope<{ user: AuthUser }>>('/api/auth/update-profilen', {
+  return request<ApiEnvelope<{ user: AuthUser }>>('/api/user/update-profile', {
     method: 'POST',
     body: JSON.stringify(payload),
   });

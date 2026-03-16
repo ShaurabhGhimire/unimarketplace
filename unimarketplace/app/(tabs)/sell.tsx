@@ -1,4 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { Image } from 'expo-image';
+import { ImagePickerAsset } from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
@@ -15,6 +17,7 @@ import {
 
 import { getAccessToken } from '@/lib/auth-storage';
 import { createListing } from '@/lib/api';
+import { pickImages, uploadImages } from '@/lib/storage';
 
 const categories = ['Furniture', 'Electronics', 'Books', 'Kitchen', 'Decor', 'Clothing', 'Sports', 'Other'];
 const conditions = ['New', 'Like New', 'Good', 'Fair'];
@@ -26,7 +29,7 @@ export default function SellScreen() {
   const [category, setCategory] = useState('Furniture');
   const [condition, setCondition] = useState('Good');
   const [moveOutMode, setMoveOutMode] = useState(false);
-  const [imageUrls, setImageUrls] = useState('');
+  const [pickedImages, setPickedImages] = useState<ImagePickerAsset[]>([]);
   const [loading, setLoading] = useState(false);
 
   const canPost = useMemo(() => {
@@ -44,13 +47,10 @@ export default function SellScreen() {
       return;
     }
 
-    const images = imageUrls
-      .split('\n')
-      .map((value) => value.trim())
-      .filter(Boolean);
-
     setLoading(true);
     try {
+      const images = pickedImages.length > 0 ? await uploadImages(pickedImages, accessToken) : [];
+
       await createListing(accessToken, {
         title: title.trim(),
         description: description.trim(),
@@ -61,7 +61,7 @@ export default function SellScreen() {
         images,
       });
 
-      Alert.alert('Listing created', 'Your listing was sent to the backend listings route.', [
+      Alert.alert('Listing created', 'Your listing has been posted.', [
         {
           text: 'View Browse',
           onPress: () => router.replace('/'),
@@ -73,7 +73,7 @@ export default function SellScreen() {
       setCategory('Furniture');
       setCondition('Good');
       setMoveOutMode(false);
-      setImageUrls('');
+      setPickedImages([]);
     } catch {
       Alert.alert(
         'Create listing failed',
@@ -96,20 +96,24 @@ export default function SellScreen() {
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Photos</Text>
-          <View style={styles.uploadBox}>
+          <Pressable
+            style={styles.uploadBox}
+            onPress={async () => {
+              const assets = await pickImages();
+              if (assets.length > 0) setPickedImages(assets);
+            }}>
             <MaterialIcons name="cloud-upload" size={22} color="#646AE8" />
-            <Text style={styles.uploadText}>Paste Supabase image URLs</Text>
-          </View>
-          <TextInput
-            value={imageUrls}
-            onChangeText={setImageUrls}
-            style={[styles.input, styles.description, styles.imagesInput]}
-            multiline
-            textAlignVertical="top"
-            placeholder="One public image URL per line"
-            placeholderTextColor="#9AA3B0"
-          />
-          <Text style={styles.helper}>Backend expects `images` as an array of URLs. Upload to Supabase Storage first, then paste the public URLs here.</Text>
+            <Text style={styles.uploadText}>
+              {pickedImages.length > 0 ? `${pickedImages.length} photo(s) selected` : 'Select Photos'}
+            </Text>
+          </Pressable>
+          {pickedImages.length > 0 && (
+            <View style={styles.thumbnailRow}>
+              {pickedImages.map((img, i) => (
+                <Image key={i} source={{ uri: img.uri }} style={styles.thumbnail} contentFit="cover" />
+              ))}
+            </View>
+          )}
         </View>
 
         <View style={styles.card}>
@@ -424,5 +428,16 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     textAlign: 'center',
     paddingHorizontal: 12,
+  },
+  thumbnailRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  thumbnail: {
+    width: 72,
+    height: 72,
+    borderRadius: 10,
   },
 });

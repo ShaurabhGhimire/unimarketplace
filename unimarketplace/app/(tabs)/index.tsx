@@ -20,7 +20,7 @@ import {
   type MarketplaceItem,
 } from '@/data/mock';
 import { getAccessToken } from '@/lib/auth-storage';
-import { API_BASE_URL, getBackendHealth, getListings, getMarketplaceItems } from '@/lib/api';
+import { API_BASE_URL, getBackendHealth, getListings, getMarketplaceItems, type ListingFilters } from '@/lib/api';
 import { useOnboarding } from '@/lib/onboarding-context';
 
 const fallbackSellerAvatar =
@@ -57,7 +57,12 @@ export default function BrowseScreen() {
 
       if (accessToken) {
         try {
-          const backendListings = await getListings(accessToken);
+          const filters: ListingFilters = {};
+          if (activeCategory !== 'all') {
+            const match = categoryFilters.find((c) => c.id === activeCategory);
+            if (match) filters.category = match.label;
+          }
+          const backendListings = await getListings(accessToken, filters);
           if (!mounted) return;
 
           if (backendListings.length > 0) {
@@ -109,7 +114,7 @@ export default function BrowseScreen() {
     return () => {
       mounted = false;
     };
-  }, [data.collegeName]);
+  }, [data.collegeName, activeCategory]);
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {

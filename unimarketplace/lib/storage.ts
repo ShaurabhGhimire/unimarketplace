@@ -1,0 +1,58 @@
+import * as ImagePicker from 'expo-image-picker';
+import { createClient } from '@supabase/supabase-js';
+
+const BUCKET = 'listing-images';
+const MAX_IMAGES = 5;
+
+function getSupabaseStorage(accessToken: string) {
+  const url = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+  const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+  return createClient(url, key, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+}
+
+export async function pickImages(): Promise<ImagePicker.ImagePickerAsset[]> {
+  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (status !== 'granted') {
+    throw new Error('Camera roll permission is required to upload photos.');
+  }
+
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: 'images',
+    allowsMultipleSelection: true,
+    selectionLimit: MAX_IMAGES,
+    quality: 0.8,
+  });
+
+  if (result.canceled) return [];
+  return result.assets;
+}
+
+export async function uploadImages(
+  assets: ImagePicker.ImagePickerAsset[],
+  accessToken: string,
+): Promise<string[]> {
+  const supabase = getSupabaseStorage(accessToken);
+  const urls: string[] = [];
+
+  for (const asset of assets) {
+    const ext = asset.uri.split('.').pop() ?? 'jpg';
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+    const response = await fetch(asset.uri);
+    const blob = await response.blob();
+
+    const { error } = await supabase.storage.from(BUCKET).upload(filename, blob, {
+      contentType: asset.mimeType ?? 'image/jpeg',
+      upsert: false,
+    });
+
+    if (error) throw new Error(`Upload failed: ${error.message}`);
+
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(filename);
+    urls.push(data.publicUrl);
+  }
+
+  return urls;
+}
