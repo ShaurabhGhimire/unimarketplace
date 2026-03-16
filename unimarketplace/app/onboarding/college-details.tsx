@@ -17,7 +17,7 @@ export default function CollegeDetailsScreen() {
       />
 
       <View style={onboardingStyles.infoBox}>
-        <MaterialIcons name="verified" color="#39B989" size={30} style={styles.infoIcon} />
+        <MaterialIcons name="verified" color="#39B989" size={24} style={styles.infoIcon} />
         <View style={styles.infoContent}>
           <Text style={[onboardingStyles.infoTitle, styles.verifiedTitle]}>Email Verified: sghimire@caldwell.edu</Text>
           <Text style={[onboardingStyles.infoText, styles.verifiedText]}>
@@ -29,13 +29,13 @@ export default function CollegeDetailsScreen() {
       <Text style={onboardingStyles.fieldLabel}>College/University *</Text>
       <View style={onboardingStyles.field}>
         <Text style={onboardingStyles.fieldText}>Caldwell University - Caldwell, NJ</Text>
-        <MaterialIcons name="keyboard-arrow-down" color="#B0B0B0" size={26} />
+        <MaterialIcons name="keyboard-arrow-down" color="#B0B0B0" size={24} />
       </View>
 
       <Text style={[onboardingStyles.fieldLabel, styles.mt12]}>Expected Graduation Year *</Text>
       <View style={onboardingStyles.field}>
         <Text style={onboardingStyles.fieldText}>2027</Text>
-        <MaterialIcons name="keyboard-arrow-down" color="#B0B0B0" size={26} />
+        <MaterialIcons name="keyboard-arrow-down" color="#B0B0B0" size={24} />
       </View>
 
       <View style={onboardingStyles.rowButtons}>
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     color: '#185E49',
   },
   mt12: {
-    marginTop: 12,
+    marginTop: 8,
   },
   flex1: {
     flex: 1,

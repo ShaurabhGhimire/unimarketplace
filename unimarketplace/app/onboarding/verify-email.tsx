@@ -7,7 +7,7 @@ import { OnboardingShell, StepIndicator, onboardingStyles } from '@/components/o
 
 export default function VerifyEmailScreen() {
   return (
-    <OnboardingShell title="Campus Market" subtitle="Verify your student email to continue">
+    <OnboardingShell title="UniMarketplace" subtitle="Verify your student email to continue">
       <StepIndicator
         steps={[
           { id: '1', label: 'Select College', state: 'done' },
@@ -17,7 +17,7 @@ export default function VerifyEmailScreen() {
       />
 
       <View style={onboardingStyles.infoBox}>
-        <MaterialIcons name="info-outline" size={28} color="#1E88D0" style={styles.infoIcon} />
+        <MaterialIcons name="info-outline" size={24} color="#1E88D0" style={styles.infoIcon} />
         <View style={styles.infoContent}>
           <Text style={onboardingStyles.infoTitle}>Selected: Caldwell University</Text>
           <Text style={onboardingStyles.infoText}>Please use your official college email (@caldwell.edu)</Text>
@@ -27,7 +27,7 @@ export default function VerifyEmailScreen() {
       <Text style={onboardingStyles.fieldLabel}>College Email *</Text>
       <View style={onboardingStyles.field}>
         <View style={styles.row}>
-          <MaterialIcons name="mail" color="#888888" size={24} />
+          <MaterialIcons name="mail" color="#888888" size={20} />
           <TextInput style={styles.input} placeholder="you@caldwell.edu" placeholderTextColor="#9AA3AF" />
         </View>
       </View>
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     color: '#222F46',
-    fontSize: 18,
+    fontSize: 16,
   },
   flex1: {
     flex: 1,

@@ -1,31 +1,41 @@
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
+import { router } from 'expo-router';
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Colors } from '@/constants/theme';
-import { inboxThreads } from '@/data/mock';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { messageThreads } from '@/data/mock';
 
 export default function InboxScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
-  const palette = Colors[colorScheme];
-
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]}> 
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={[styles.title, { color: palette.text }]}>Inbox</Text>
-        <Text style={[styles.subtitle, { color: palette.muted }]}>Mock chat threads for buyer/seller communication</Text>
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Messages</Text>
+      </View>
 
-        {inboxThreads.map((thread) => (
-          <View
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        {messageThreads.map((thread, index) => (
+          <Pressable
             key={thread.id}
-            style={[styles.card, { backgroundColor: palette.card, borderColor: palette.border }]}>
-            <View style={styles.rowTop}>
-              <Text style={[styles.name, { color: palette.text }]}>{thread.buyerName}</Text>
-              <Text style={[styles.time, { color: palette.muted }]}>{thread.updatedAt}</Text>
+            style={[styles.threadRow, index === messageThreads.length - 1 ? styles.noDivider : null]}
+            onPress={() => router.push(`/messages/${thread.id}`)}>
+            <View style={styles.leftCol}>
+              <View>
+                <Image source={{ uri: thread.avatar }} style={styles.avatar} contentFit="cover" />
+                {thread.unreadCount > 0 ? <View style={styles.onlineDot} /> : null}
+              </View>
+              <View style={styles.body}>
+                <View style={styles.topLine}>
+                  <Text style={styles.name}>{thread.userName}</Text>
+                  <Text style={styles.time}>{thread.updatedAt}</Text>
+                </View>
+                <Text numberOfLines={1} style={[styles.preview, thread.unreadCount > 0 ? styles.unread : null]}>
+                  {thread.lastMessage}
+                </Text>
+                <Text numberOfLines={1} style={styles.listing}>
+                  Re: {thread.listingTitle}
+                </Text>
+              </View>
             </View>
-            <Text style={[styles.listing, { color: palette.muted }]}>{thread.listingTitle}</Text>
-            <Text style={[styles.message, { color: palette.text }]}>{thread.lastMessage}</Text>
-            {thread.unread ? <View style={[styles.badge, { backgroundColor: palette.tint }]} /> : null}
-          </View>
+          </Pressable>
         ))}
       </ScrollView>
     </SafeAreaView>
@@ -35,52 +45,83 @@ export default function InboxScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
+    backgroundColor: '#EDEEF2',
+  },
+  header: {
+    height: 76,
+    backgroundColor: '#F6F6F8',
+    borderBottomWidth: 1,
+    borderBottomColor: '#D3D5DB',
+    justifyContent: 'center',
+    paddingHorizontal: 22,
+  },
+  headerTitle: {
+    fontSize: 44 / 2,
+    fontWeight: '800',
+    color: '#202A3E',
   },
   container: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 100,
-    gap: 12,
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 120,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
+  threadRow: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#CDD2DA',
+    paddingBottom: 20,
+    marginBottom: 20,
   },
-  subtitle: {
-    fontSize: 14,
-    marginBottom: 4,
+  noDivider: {
+    borderBottomWidth: 0,
   },
-  card: {
+  leftCol: {
+    flexDirection: 'row',
+    gap: 14,
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+  },
+  onlineDot: {
+    height: 11,
+    width: 11,
+    borderRadius: 7,
     borderWidth: 1,
-    borderRadius: 14,
-    padding: 12,
-    position: 'relative',
-    gap: 5,
+    borderColor: '#EDEEF2',
+    backgroundColor: '#FA4F4F',
+    position: 'absolute',
+    right: 0,
+    top: 2,
   },
-  rowTop: {
+  body: {
+    flex: 1,
+    gap: 4,
+  },
+  topLine: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   name: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 40 / 2,
+    fontWeight: '800',
+    color: '#212B3F',
   },
   time: {
-    fontSize: 12,
+    color: '#6A7C97',
+    fontSize: 32 / 2,
+  },
+  preview: {
+    color: '#60728F',
+    fontSize: 19,
+  },
+  unread: {
+    color: '#4E627F',
+    fontWeight: '700',
   },
   listing: {
-    fontSize: 12,
-  },
-  message: {
-    fontSize: 14,
-  },
-  badge: {
-    height: 10,
-    width: 10,
-    borderRadius: 99,
-    position: 'absolute',
-    right: 12,
-    bottom: 12,
+    color: '#60728F',
+    fontSize: 33 / 2,
   },
 });

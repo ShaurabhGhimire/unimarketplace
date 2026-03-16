@@ -7,7 +7,7 @@ import { OnboardingShell, StepIndicator, onboardingStyles } from '@/components/o
 
 export default function VerificationCodeScreen() {
   return (
-    <OnboardingShell title="Campus Market" subtitle="Verify your student email to continue">
+    <OnboardingShell title="UniMarketplace" subtitle="Verify your student email to continue">
       <StepIndicator
         steps={[
           { id: '1', label: 'Select College', state: 'done' },
@@ -17,7 +17,7 @@ export default function VerificationCodeScreen() {
       />
 
       <View style={styles.badgeWrap}>
-        <MaterialIcons name="verified-user" size={76} color="#5F64E8" />
+        <MaterialIcons name="verified-user" size={56} color="#5F64E8" />
       </View>
       <Text style={styles.heading}>Check Your Email</Text>
       <Text style={styles.copy}>
@@ -49,12 +49,12 @@ export default function VerificationCodeScreen() {
 
 const styles = StyleSheet.create({
   badgeWrap: {
-    marginTop: 20,
+    marginTop: 10,
     alignItems: 'center',
   },
   heading: {
-    marginTop: 8,
-    fontSize: 42,
+    marginTop: 4,
+    fontSize: 32,
     fontWeight: '800',
     color: '#1F2A44',
     textAlign: 'center',
@@ -63,8 +63,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
     color: '#5E7090',
     textAlign: 'center',
-    fontSize: 17,
-    lineHeight: 28,
+    fontSize: 14,
+    lineHeight: 20,
   },
   email: {
     color: '#5F64E8',
@@ -72,17 +72,17 @@ const styles = StyleSheet.create({
   },
   codeInput: {
     color: '#222F46',
-    fontSize: 18,
+    fontSize: 16,
     width: '100%',
   },
   flex1: {
     flex: 1,
   },
   resend: {
-    marginTop: 18,
+    marginTop: 12,
     textAlign: 'center',
     color: '#5F64E8',
-    fontSize: 17,
+    fontSize: 14,
     fontWeight: '600',
   },
 });

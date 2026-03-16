@@ -1,7 +1,7 @@
 # UniMarketplace Frontend (Expo + TypeScript)
 
 Mobile frontend for a college-only marketplace built with React Native and Expo Router.
-This app currently uses mock data and frontend-only flows so backend/Supabase can be integrated incrementally.
+This app has onboarding + browse UI and supports backend integration with fallback mock data.
 
 ## Stack
 
@@ -23,27 +23,37 @@ Then press:
 - `a` for Android emulator
 - `w` for web
 
+## Backend integration (teammate repo)
+
+This frontend is wired to the backend contract in:
+`https://github.com/Philemon-a/unimarketplace-backend`
+
+Supported endpoints used by frontend:
+
+- `GET /health`
+- `GET /api/items`
+
+Set API URL with Expo public env var:
+
+```bash
+EXPO_PUBLIC_API_URL=http://localhost:3000 npx expo start
+```
+
+If backend is unreachable or `/api/items` returns an empty array, the app falls back to local mock data.
+
 ## Current frontend screens
 
-- `Home`: search + category chips + latest listings
-- `Discover`: category filter + sorting UI
+- Onboarding flow: college selection, email verification, profile completion
+- `Browse`: search + category chips + latest listings
 - `Sell`: create-listing form stub
-- `Inbox`: chat-thread preview list
-- `Profile`: verified student profile + move-out mode toggle
+- `Messages`: chat-thread preview list
 
 ## Key files
 
+- `app/_layout.tsx`: stack routing and onboarding entry
+- `app/index.tsx`: root redirect to onboarding
+- `app/onboarding/*`: onboarding screens
 - `app/(tabs)/_layout.tsx`: tab navigation config
-- `app/(tabs)/index.tsx`: Home screen
-- `app/(tabs)/explore.tsx`: Discover screen
-- `app/(tabs)/sell.tsx`: Sell screen
-- `app/(tabs)/inbox.tsx`: Inbox screen
-- `app/(tabs)/profile.tsx`: Profile screen
+- `app/(tabs)/index.tsx`: Browse screen (backend + fallback mock)
+- `lib/api.ts`: backend client utilities
 - `data/mock.ts`: mock listings + inbox data
-
-## Integration notes for backend/Supabase
-
-- Replace `data/mock.ts` reads with API hooks/queries.
-- Wire `Sell` form submit to listing create endpoint.
-- Wire `Inbox` to real threads/messages.
-- Use authenticated user context for `Profile` content.

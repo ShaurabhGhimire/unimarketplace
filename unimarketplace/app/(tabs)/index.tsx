@@ -1,6 +1,7 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Image } from 'expo-image';
-import { useMemo, useState } from 'react';
+import { router } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Pressable,
   SafeAreaView,
@@ -12,20 +13,110 @@ import {
   View,
 } from 'react-native';
 
-import { categoryFilters, locationFilters, marketplaceItems } from '@/data/mock';
+import {
+  categoryFilters,
+  locationFilters,
+  marketplaceItems,
+  type MarketplaceItem,
+} from '@/data/mock';
+import { getAccessToken } from '@/lib/auth-storage';
+import { API_BASE_URL, getBackendHealth, getListings, getMarketplaceItems } from '@/lib/api';
+import { useOnboarding } from '@/lib/onboarding-context';
+
+const fallbackSellerAvatar =
+  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80';
+
+const fallbackListingImage =
+  'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=900&q=80';
 
 export default function BrowseScreen() {
+  const { data } = useOnboarding();
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeLocation, setActiveLocation] = useState('All Colleges');
   const [moveOutDeals, setMoveOutDeals] = useState(false);
+  const [items, setItems] = useState<MarketplaceItem[]>(marketplaceItems);
+  const [apiStatus, setApiStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function bootstrap() {
+      try {
+        await getBackendHealth();
+        if (!mounted) return;
+        setApiStatus('online');
+      } catch {
+        if (!mounted) return;
+        setApiStatus('offline');
+        setItems(marketplaceItems);
+        return;
+      }
+
+      const accessToken = await getAccessToken();
+
+      if (accessToken) {
+        try {
+          const backendListings = await getListings(accessToken);
+          if (!mounted) return;
+
+          if (backendListings.length > 0) {
+            const normalized = backendListings.map((item) => ({
+              id: item.id,
+              title: item.title,
+              price: item.price,
+              seller: 'Campus Seller',
+              college: data.collegeName || 'Your College',
+              imageUrl: item.images?.[0] || fallbackListingImage,
+              sellerAvatar: fallbackSellerAvatar,
+              daysLeft: item.is_urgent ? 'Urgent' : undefined,
+            }));
+            setItems(normalized);
+            return;
+          }
+        } catch {
+          if (!mounted) return;
+        }
+      }
+
+      try {
+        const legacyItems = await getMarketplaceItems();
+        if (!mounted) return;
+
+        if (legacyItems.length > 0) {
+          const normalized = legacyItems.map((item, index) => ({
+            id: item.id ?? `backend-${index}`,
+            title: item.title ?? 'Marketplace Item',
+            price: item.price ?? 0,
+            seller: item.seller ?? 'Campus Seller',
+            college: item.college ?? 'Your College',
+            imageUrl: item.image_url ?? fallbackListingImage,
+            sellerAvatar: item.seller_avatar ?? fallbackSellerAvatar,
+            daysLeft: item.days_left,
+          }));
+          setItems(normalized);
+        } else {
+          setItems(marketplaceItems);
+        }
+      } catch {
+        if (!mounted) return;
+        setItems(marketplaceItems);
+      }
+    }
+
+    bootstrap();
+
+    return () => {
+      mounted = false;
+    };
+  }, [data.collegeName]);
 
   const filteredItems = useMemo(() => {
-    return marketplaceItems.filter((item) => {
+    return items.filter((item) => {
       const inQuery = item.title.toLowerCase().includes(query.toLowerCase());
       return inQuery;
     });
-  }, [query]);
+  }, [items, query]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -33,10 +124,18 @@ export default function BrowseScreen() {
         <View style={styles.appCard}>
           <View style={styles.topRow}>
             <Text style={styles.heading}>Campus Market</Text>
-            <Pressable style={styles.profileBtn}>
+            <Pressable style={styles.profileBtn} onPress={() => router.push('/profile')}>
               <MaterialIcons name="person" size={24} color="#7E7E7E" />
             </Pressable>
           </View>
+
+          <View style={styles.statusRow}>
+            <View style={[styles.statusDot, apiStatus === 'online' ? styles.statusOnline : styles.statusOffline]} />
+            <Text style={styles.statusText}>
+              Backend: {apiStatus === 'checking' ? 'Checking...' : apiStatus === 'online' ? 'Connected' : 'Offline (mock data)'}
+            </Text>
+          </View>
+          <Text style={styles.apiText}>{API_BASE_URL}</Text>
 
           <View style={styles.searchBar}>
             <MaterialIcons name="search" size={28} color="#7A869F" />
@@ -160,7 +259,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   heading: {
-    fontSize: 48 / 2,
+    fontSize: 24,
     fontWeight: '800',
     color: '#5F64E8',
   },
@@ -173,6 +272,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F9F9FB',
+  },
+  statusRow: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusOnline: {
+    backgroundColor: '#08B26B',
+  },
+  statusOffline: {
+    backgroundColor: '#D25353',
+  },
+  statusText: {
+    color: '#5B6F8D',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  apiText: {
+    marginTop: 2,
+    color: '#8794AA',
+    fontSize: 11,
   },
   searchBar: {
     marginTop: 18,
@@ -188,7 +314,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     marginLeft: 10,
-    fontSize: 34 > 30 ? 34 / 2 : 17,
+    fontSize: 17,
     color: '#243047',
   },
   inlineRow: {
@@ -226,23 +352,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#DADCE2',
   },
   locationChip: {
-    borderWidth: 1,
-    borderColor: '#BEC2CE',
     borderRadius: 13,
     minHeight: 44,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#F5F5F8',
+    backgroundColor: '#F0F2F7',
   },
   locationChipActive: {
-    backgroundColor: '#E0E1E6',
-    borderColor: '#E0E1E6',
+    backgroundColor: '#F8ECCD',
   },
   locationText: {
-    color: '#2C3751',
-    fontSize: 18,
+    color: '#4B586E',
+    fontSize: 16,
     fontWeight: '500',
   },
   locationTextActive: {
@@ -250,91 +373,87 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   moveOutRow: {
-    marginTop: 14,
+    marginTop: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
   moveOutText: {
-    color: '#2D3951',
-    fontSize: 32 / 2,
-    fontWeight: '500',
+    color: '#1F2A44',
+    fontSize: 17,
+    fontWeight: '700',
   },
   metaRow: {
-    marginTop: 22,
-    marginBottom: 12,
+    marginTop: 16,
   },
   metaText: {
-    color: '#667894',
-    fontSize: 18,
+    color: '#6B7A94',
+    fontSize: 13,
+    fontWeight: '600',
   },
   gridWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    rowGap: 16,
+    marginTop: 16,
+    gap: 14,
   },
   itemCard: {
-    width: '48.5%',
-    borderRadius: 28,
-    backgroundColor: '#F8F8FA',
-    borderWidth: 1,
-    borderColor: '#D0D3DB',
+    borderRadius: 22,
     overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D7DBE5',
   },
   imageWrap: {
-    height: 230,
+    position: 'relative',
   },
   itemImage: {
     width: '100%',
-    height: '100%',
+    height: 190,
   },
   favoriteBtn: {
     position: 'absolute',
-    left: 10,
-    top: 10,
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
-    backgroundColor: '#F5F7FA',
+    top: 12,
+    right: 12,
+    height: 38,
+    width: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.92)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   daysBadge: {
     position: 'absolute',
-    right: 10,
-    top: 10,
-    backgroundColor: '#F7A90A',
-    borderRadius: 16,
-    paddingHorizontal: 12,
+    left: 12,
+    top: 12,
+    borderRadius: 12,
+    backgroundColor: '#F5A524',
+    paddingHorizontal: 10,
     paddingVertical: 6,
   },
   daysText: {
     color: '#FFFFFF',
-    fontSize: 16 / 2,
+    fontSize: 12,
     fontWeight: '700',
   },
   cardBody: {
-    padding: 12,
+    padding: 14,
   },
   itemTitle: {
     color: '#1E2942',
-    fontSize: 34 / 2,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '800',
     lineHeight: 24,
-    minHeight: 50,
   },
   price: {
-    marginTop: 10,
+    marginTop: 8,
     color: '#5F64E8',
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '800',
   },
   sellerRow: {
     marginTop: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   avatar: {
     width: 28,
@@ -342,17 +461,18 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   sellerName: {
-    color: '#61708C',
-    fontSize: 16,
+    color: '#263145',
+    fontSize: 14,
+    fontWeight: '700',
   },
   collegeRow: {
-    marginTop: 6,
+    marginTop: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
   college: {
-    color: '#61708C',
-    fontSize: 16,
+    color: '#6B7A94',
+    fontSize: 13,
   },
 });
