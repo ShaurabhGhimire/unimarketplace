@@ -12,7 +12,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <OnboardingProvider>
-        <Stack initialRouteName="onboarding/auth">
+        <Stack initialRouteName="(tabs)">
           <Stack.Screen name="onboarding/auth" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding/signup" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding/google-complete" options={{ headerShown: false }} />
@@ -20,6 +20,7 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="move-out-mode" options={{ headerShown: false }} />
           <Stack.Screen name="messages/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="listings/[id]" options={{ headerShown: false }} />
 
           <Stack.Screen name="onboarding/email-signin" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding/email-signup" options={{ headerShown: false }} />
