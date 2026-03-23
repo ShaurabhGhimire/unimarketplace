@@ -11,6 +11,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const benefits = [
   {
@@ -35,10 +36,11 @@ const benefits = [
 
 export default function MoveOutModeScreen() {
   const [enabled, setEnabled] = useState(false);
+  const insets = useSafeAreaInsets();
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable style={styles.back} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={30} color="#79808B" />
         </Pressable>
