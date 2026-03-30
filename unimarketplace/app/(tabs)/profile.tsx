@@ -1,7 +1,7 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -10,29 +10,67 @@ import {
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 
-import { marketplaceItems, messageThreads } from '@/data/mock';
-import { clearAccessToken } from '@/lib/auth-storage';
+import { messageThreads } from '@/data/mock';
+import { getMyProfile, updateProfile, deleteAccount, type ProfileRecord } from '@/lib/api';
+import { clearAccessToken, getAccessToken } from '@/lib/auth-storage';
 import { useOnboarding } from '@/lib/onboarding-context';
+
+const gradYears = ['2025', '2026', '2027', '2028', '2029', '2030'];
 
 export default function ProfileScreen() {
   const { data, reset } = useOnboarding();
+  const [profile, setProfile] = useState<ProfileRecord | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editGradYear, setEditGradYear] = useState('');
+  const [saving, setSaving] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [moveOutMode, setMoveOutMode] = useState(false);
 
-  const initials = (data.name || data.email || 'U').trim().charAt(0).toUpperCase();
-  const userName = data.name || 'Campus Student';
-  const userEmail = data.email || 'verified@student.edu';
-  const collegeName = data.collegeName || 'Your College';
-  const gradYear = data.gradYear || '2027';
-  const activeListings = marketplaceItems.length;
-  const soldItems = 12;
-  const savedItems = 8;
+  useEffect(() => {
+    async function fetchProfile() {
+      const token = await getAccessToken();
+      if (!token) return;
+      try {
+        const res = await getMyProfile(token);
+        if (res.data?.user) setProfile(res.data.user);
+      } catch {}
+    }
+    fetchProfile();
+  }, []);
 
-  const handleEditProfile = () => {
-    router.push('/onboarding/profile-details');
+  const displayName = profile?.name ?? data.name ?? 'Campus Student';
+  const displayEmail = data.email ?? 'verified@student.edu';
+  const displayGradYear = profile?.graduation_year?.toString() ?? data.gradYear ?? '';
+  const initials = displayName.trim().charAt(0).toUpperCase();
+
+  const handleEditPress = () => {
+    setEditName(displayName);
+    setEditGradYear(displayGradYear);
+    setEditing(true);
+  };
+
+  const handleSave = async () => {
+    const token = await getAccessToken();
+    if (!token) return;
+    setSaving(true);
+    try {
+      const gradYearNum = editGradYear ? parseInt(editGradYear, 10) : null;
+      const res = await updateProfile(token, {
+        name: editName.trim() || undefined,
+        graduation_year: gradYearNum,
+      });
+      if (res.data?.user) setProfile(res.data.user);
+      setEditing(false);
+    } catch {
+      Alert.alert('Update failed', 'Could not save profile changes.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -42,6 +80,32 @@ export default function ProfileScreen() {
       reset();
       router.replace('/onboarding/auth');
     }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'This will permanently delete your account and all your listings. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            const token = await getAccessToken();
+            if (!token) return;
+            try {
+              await deleteAccount(token);
+              await clearAccessToken();
+              reset();
+              router.replace('/onboarding/auth');
+            } catch {
+              Alert.alert('Error', 'Could not delete account. Please try again.');
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handlePending = (title: string, message: string) => {
@@ -56,55 +120,72 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.profileCard}>
-          {data.avatarUrl ? (
-            <Image source={{ uri: data.avatarUrl }} style={styles.avatarImage} contentFit="cover" />
+          {profile?.avatar_url ? (
+            <Image source={{ uri: profile.avatar_url }} style={styles.avatarImage} contentFit="cover" />
           ) : (
             <View style={styles.avatarFallback}>
               <Text style={styles.avatarFallbackText}>{initials}</Text>
             </View>
           )}
 
-          <Text style={styles.name}>{userName}</Text>
-
-          <View style={styles.emailRow}>
-            <Text style={styles.email}>{userEmail}</Text>
-            <MaterialIcons name="verified-user" size={16} color="#5F64E8" />
-          </View>
-
-          <Text style={styles.meta}>
-            {collegeName} • Class of {gradYear}
-          </Text>
-
-          <Pressable style={styles.editButton} onPress={handleEditProfile}>
-            <MaterialIcons name="edit" size={16} color="#32415D" />
-            <Text style={styles.editButtonText}>Edit Profile</Text>
-          </Pressable>
-        </View>
-
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, styles.statValuePrimary]}>{activeListings}</Text>
-            <Text style={styles.statLabel}>Active Listings</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, styles.statValueSuccess]}>{soldItems}</Text>
-            <Text style={styles.statLabel}>Items Sold</Text>
-          </View>
+          {editing ? (
+            <>
+              <Text style={styles.fieldLabel}>Full Name</Text>
+              <TextInput
+                style={styles.editInput}
+                value={editName}
+                onChangeText={setEditName}
+                placeholder="Your name"
+                placeholderTextColor="#98A3B5"
+              />
+              <Text style={styles.fieldLabel}>Graduation Year</Text>
+              <Pressable
+                style={styles.editInput}
+                onPress={() => {
+                  const idx = gradYears.indexOf(editGradYear);
+                  setEditGradYear(gradYears[(idx + 1) % gradYears.length]);
+                }}>
+                <Text style={{ color: '#1E2942', fontSize: 15 }}>{editGradYear || 'Select year'}</Text>
+                <MaterialIcons name="keyboard-arrow-down" size={20} color="#7D869A" />
+              </Pressable>
+              <View style={styles.editActions}>
+                <Pressable style={styles.cancelBtn} onPress={() => setEditing(false)}>
+                  <Text style={styles.cancelText}>Cancel</Text>
+                </Pressable>
+                <Pressable style={styles.saveBtn} onPress={handleSave}>
+                  <Text style={styles.saveText}>{saving ? 'Saving...' : 'Save'}</Text>
+                </Pressable>
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={styles.name}>{displayName}</Text>
+              <View style={styles.emailRow}>
+                <Text style={styles.email}>{displayEmail}</Text>
+                <MaterialIcons name="verified-user" size={16} color="#5F64E8" />
+              </View>
+              {displayGradYear ? (
+                <Text style={styles.meta}>Class of {displayGradYear}</Text>
+              ) : null}
+              <Pressable style={styles.editButton} onPress={handleEditPress}>
+                <MaterialIcons name="edit" size={16} color="#32415D" />
+                <Text style={styles.editButtonText}>Edit Profile</Text>
+              </Pressable>
+            </>
+          )}
         </View>
 
         <Text style={styles.sectionTitle}>My Activity</Text>
         <View style={styles.sectionCard}>
           <Pressable
             style={styles.rowButton}
-            onPress={() =>
-              handlePending('Listings coming next', `${activeListings} listings are ready to connect to backend data.`)
-            }>
+            onPress={() => handlePending('My Listings', 'Your listings feature is coming soon.')}>
             <View style={styles.rowIconWrap}>
               <MaterialIcons name="inventory-2" size={20} color="#5F64E8" />
             </View>
             <View style={styles.rowTextWrap}>
               <Text style={styles.rowTitle}>My Listings</Text>
-              <Text style={styles.rowSubtitle}>{activeListings} active</Text>
+              <Text style={styles.rowSubtitle}>View your active listings</Text>
             </View>
             <MaterialIcons name="chevron-right" size={22} color="#8692A8" />
           </Pressable>
@@ -113,7 +194,7 @@ export default function ProfileScreen() {
 
           <Pressable
             style={styles.rowButton}
-            onPress={() => handlePending('Saved items', `${savedItems} saved items in demo mode.`)}>
+            onPress={() => handlePending('Saved Items', 'Your saved items feature is coming soon.')}>
             <View style={styles.rowIconWrap}>
               <MaterialIcons name="favorite" size={20} color="#E45569" />
             </View>
@@ -202,6 +283,11 @@ export default function ProfileScreen() {
         <Pressable style={styles.logoutButton} onPress={handleLogout}>
           <MaterialIcons name="logout" size={18} color="#D3485F" />
           <Text style={styles.logoutText}>Log Out</Text>
+        </Pressable>
+
+        <Pressable style={styles.deleteButton} onPress={handleDeleteAccount}>
+          <MaterialIcons name="delete-forever" size={18} color="#9B1C1C" />
+          <Text style={styles.deleteText}>Delete Account</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>
@@ -432,5 +518,77 @@ const styles = StyleSheet.create({
     color: '#D3485F',
     fontSize: 15,
     fontWeight: '700',
+  },
+  deleteButton: {
+    marginTop: 10,
+    minHeight: 54,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#F5C6C6',
+    backgroundColor: '#FFF0F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  deleteText: {
+    color: '#9B1C1C',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  fieldLabel: {
+    alignSelf: 'flex-start',
+    marginTop: 12,
+    marginBottom: 4,
+    color: '#60728F',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  editInput: {
+    width: '100%',
+    minHeight: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#C7CCD8',
+    paddingHorizontal: 14,
+    backgroundColor: '#FCFCFE',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    color: '#1E2942',
+    fontSize: 15,
+  },
+  editActions: {
+    marginTop: 14,
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+  },
+  cancelBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#C7CCD8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelText: {
+    color: '#60728F',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  saveBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#5F64E8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14,
   },
 });

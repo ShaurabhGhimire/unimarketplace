@@ -45,7 +45,7 @@ export default function AuthEntryScreen() {
         throw new Error("No auth payload returned");
       }
 
-      await saveAccessToken(auth.access_token);
+      await saveAccessToken(auth.session.access_token);
       update({
         authMethod: "email-signin",
         email: auth.user.email,
@@ -54,13 +54,13 @@ export default function AuthEntryScreen() {
         gradYear: auth.user.grad_year ?? "",
         avatarUrl: auth.user.avatar_url ?? "",
         emailVerified: true,
-        accessToken: auth.access_token,
+        accessToken: auth.session.access_token,
       });
       router.replace("/(tabs)");
     } catch {
       Alert.alert(
-        "Sign in route pending",
-        "Backend /api/auth/signin is not live yet. Please use Sign up or Google demo path for now.",
+        "Sign in failed",
+        "Invalid email or password. Please try again.",
       );
     } finally {
       setLoading(false);

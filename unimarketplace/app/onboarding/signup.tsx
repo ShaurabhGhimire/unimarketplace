@@ -10,11 +10,11 @@ import { useOnboarding } from '@/lib/onboarding-context';
 
 export default function SignupScreen() {
   const [name, setName] = useState('');
-  const [college, setCollege] = useState(usColleges[0]);
+  const [college, setCollege] = useState<string>(usColleges[0]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [gradYear, setGradYear] = useState(gradYears[1]);
+  const [gradYear, setGradYear] = useState<string>(gradYears[1]);
   const [avatarUrl, setAvatarUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const { update } = useOnboarding();
@@ -52,7 +52,8 @@ export default function SignupScreen() {
         throw new Error('Signup payload missing');
       }
 
-      await saveAccessToken(auth.access_token);
+      const accessToken = auth.session?.access_token ?? null;
+      if (accessToken) await saveAccessToken(accessToken);
       update({
         authMethod: 'email-signup',
         name: auth.user.name ?? name.trim(),
@@ -60,10 +61,10 @@ export default function SignupScreen() {
         email: auth.user.email,
         gradYear: auth.user.grad_year ?? gradYear,
         avatarUrl: auth.user.avatar_url ?? avatarUrl.trim(),
-        emailVerified: true,
-        accessToken: auth.access_token,
+        emailVerified: false,
+        accessToken: accessToken ?? '',
       });
-      router.replace('/(tabs)');
+      router.replace('/onboarding/email-verify');
     } catch (err) {
       Alert.alert(
         'Signup failed',
@@ -88,7 +89,7 @@ export default function SignupScreen() {
           <Pressable
             style={styles.select}
             onPress={() => {
-              const idx = usColleges.indexOf(college);
+              const idx = (usColleges as readonly string[]).indexOf(college);
               setCollege(usColleges[(idx + 1) % usColleges.length]);
             }}>
             <Text style={styles.selectText} numberOfLines={1}>
@@ -129,7 +130,7 @@ export default function SignupScreen() {
           <Pressable
             style={styles.select}
             onPress={() => {
-              const idx = gradYears.indexOf(gradYear);
+              const idx = (gradYears as readonly string[]).indexOf(gradYear);
               setGradYear(gradYears[(idx + 1) % gradYears.length]);
             }}>
             <Text style={styles.selectText}>{gradYear}</Text>

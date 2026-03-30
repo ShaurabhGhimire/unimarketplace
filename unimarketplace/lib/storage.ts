@@ -40,10 +40,14 @@ export async function uploadImages(
     const ext = asset.uri.split('.').pop() ?? 'jpg';
     const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
-    const response = await fetch(asset.uri);
-    const blob = await response.blob();
+    const formData = new FormData();
+    formData.append('file', {
+      uri: asset.uri,
+      name: filename,
+      type: asset.mimeType ?? 'image/jpeg',
+    } as unknown as Blob);
 
-    const { error } = await supabase.storage.from(BUCKET).upload(filename, blob, {
+    const { error } = await supabase.storage.from(BUCKET).upload(filename, formData, {
       contentType: asset.mimeType ?? 'image/jpeg',
       upsert: false,
     });

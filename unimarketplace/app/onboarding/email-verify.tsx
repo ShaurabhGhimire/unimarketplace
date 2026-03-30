@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Alert, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { verifyEduCode } from '@/lib/api';
+import { saveAccessToken } from '@/lib/auth-storage';
 import { useOnboarding } from '@/lib/onboarding-context';
 
 export default function EmailVerifyScreen() {
@@ -18,20 +19,27 @@ export default function EmailVerifyScreen() {
     }
 
     setLoading(true);
+    let verifiedToken: string | null = null;
     try {
-      await verifyEduCode(data.email, code.trim());
+      const result = await verifyEduCode(data.email, code.trim());
+      verifiedToken = result.data?.session?.access_token ?? null;
     } catch {
-      if (code.trim() !== '123456') {
+      if (!__DEV__ || code.trim() !== '123456') {
         setLoading(false);
-        Alert.alert('Verification failed', 'Use 123456 in demo mode.');
+        Alert.alert('Verification failed', 'Invalid or expired code. Please try again.');
         return;
       }
     }
 
-    update({ emailVerified: true });
+    if (verifiedToken) {
+      await saveAccessToken(verifiedToken);
+      update({ emailVerified: true, accessToken: verifiedToken });
+    } else {
+      update({ emailVerified: true });
+    }
     setLoading(false);
 
-    if (mode === 'signin') {
+    if (mode === 'signin' || data.authMethod === 'email-signup') {
       router.replace('/(tabs)');
       return;
     }

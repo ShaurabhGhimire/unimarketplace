@@ -72,7 +72,7 @@ export default function BrowseScreen() {
           if (backendListings.length > 0) {
             const normalized = backendListings.map((item) => ({
               id: item.id,
-              category: 'all',
+              category: activeCategory,
               title: item.title,
               price: item.price,
               seller: 'Campus Seller',

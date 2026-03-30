@@ -26,8 +26,10 @@ export type AuthUser = {
 
 export type AuthResult = {
   user: AuthUser;
-  access_token: string;
-  refresh_token?: string;
+  session: {
+    access_token: string;
+    refresh_token?: string;
+  };
   is_new_user?: boolean;
 };
 
@@ -73,10 +75,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     },
   });
 
-  const body = (await response.json().catch(() => ({}))) as T;
+  const body = (await response.json().catch(() => ({}))) as T & { message?: string };
 
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status} for ${path}`);
+    const msg = body?.message ?? `HTTP ${response.status} for ${path}`;
+    throw new Error(msg);
   }
 
   return body;
@@ -132,6 +135,55 @@ export async function getListings(accessToken: string, filters?: ListingFilters)
   }
 
   return payload.data?.listings ?? [];
+}
+
+export type SellerProfile = {
+  id: string;
+  name: string | null;
+  avatar_url: string | null;
+  college_id: string | null;
+};
+
+export async function getListingById(accessToken: string, id: string) {
+  return request<ApiEnvelope<{ listing: ListingRecord; seller: SellerProfile | null }>>(`/api/listings/${id}`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+}
+
+export type ProfileRecord = {
+  id: string;
+  name: string | null;
+  email: string;
+  avatar_url: string | null;
+  college_id: string | null;
+  graduation_year: number | null;
+  bio: string | null;
+  is_moving_out: boolean;
+};
+
+export async function getMyProfile(accessToken: string) {
+  return request<ApiEnvelope<{ user: ProfileRecord }>>('/api/auth/me', {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export async function updateProfile(accessToken: string, payload: { name?: string; graduation_year?: number | null }) {
+  return request<ApiEnvelope<{ user: ProfileRecord }>>('/api/user/update-profile', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteAccount(accessToken: string) {
+  return request<ApiEnvelope<null>>('/api/user/delete-account', {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
 }
 
 export async function createListing(accessToken: string, payload: CreateListingPayload) {

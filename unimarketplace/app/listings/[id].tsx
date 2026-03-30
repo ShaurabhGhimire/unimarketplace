@@ -1,21 +1,74 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { marketplaceItems, messageThreads } from '@/data/mock';
+import { getListingById, type ListingRecord, type SellerProfile } from '@/lib/api';
+import { getAccessToken } from '@/lib/auth-storage';
+
+const fallbackImage = 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=900&q=80';
+const fallbackAvatar = 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80';
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default function ListingDetailScreen() {
   const params = useLocalSearchParams<{ id: string }>();
   const [saved, setSaved] = useState(false);
+  const [backendListing, setBackendListing] = useState<ListingRecord | null>(null);
+  const [seller, setSeller] = useState<SellerProfile | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
   const insets = useSafeAreaInsets();
 
-  const listing = useMemo(() => {
+  const isRealListing = UUID_REGEX.test(params.id ?? '');
+
+  useEffect(() => {
+    if (!isRealListing) return;
+    let mounted = true;
+    async function fetch() {
+      setLoading(true);
+      try {
+        const token = await getAccessToken();
+        if (!token) return;
+        const res = await getListingById(token, params.id);
+        if (mounted && res.data?.listing) {
+          setBackendListing(res.data.listing);
+          setSeller(res.data.seller ?? null);
+        }
+      } catch {
+        // falls back to mock below
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    fetch();
+    return () => { mounted = false; };
+  }, [params.id, isRealListing]);
+
+  const mockListing = useMemo(() => {
     return marketplaceItems.find((item) => item.id === params.id) ?? marketplaceItems[0];
   }, [params.id]);
-  const linkedThread = messageThreads.find((thread) => thread.listingId === listing.id) ?? messageThreads[0];
+
+  const linkedThread = messageThreads.find((thread) => thread.listingId === mockListing.id) ?? messageThreads[0];
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.safe, { alignItems: 'center', justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color="#4F46E5" />
+      </SafeAreaView>
+    );
+  }
+
+  const title = backendListing?.title ?? mockListing.title;
+  const price = backendListing?.price ?? mockListing.price;
+  const description = backendListing?.description ?? mockListing.description;
+  const condition = backendListing?.condition ?? mockListing.condition;
+  const imageUrl = backendListing?.images?.[0] ?? mockListing.imageUrl ?? fallbackImage;
+  const isUrgent = backendListing ? backendListing.is_urgent : Boolean(mockListing.daysLeft);
+  const postedAt = backendListing?.created_at?.slice(0, 10) ?? mockListing.postedAt;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -38,41 +91,57 @@ export default function ListingDetailScreen() {
       </View>
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 92 + insets.bottom }]} showsVerticalScrollIndicator={false}>
-        <Image source={{ uri: listing.imageUrl }} style={styles.heroImage} contentFit="cover" />
+        <Pressable onPress={() => setFullscreen(true)}>
+          <Image source={{ uri: imageUrl }} style={styles.heroImage} contentFit="contain" />
+        </Pressable>
 
-        {listing.daysLeft ? (
+        <Modal visible={fullscreen} transparent animationType="fade" onRequestClose={() => setFullscreen(false)}>
+          <Pressable style={styles.fullscreenBackdrop} onPress={() => setFullscreen(false)}>
+            <Image source={{ uri: imageUrl }} style={styles.fullscreenImage} contentFit="contain" />
+          </Pressable>
+        </Modal>
+
+        {isUrgent ? (
           <View style={styles.urgencyBadge}>
             <MaterialIcons name="local-fire-department" size={13} color="#FFFFFF" />
-            <Text style={styles.urgencyText}>{listing.daysLeft}</Text>
+            <Text style={styles.urgencyText}>Urgent</Text>
           </View>
         ) : null}
 
-        <Text style={styles.title}>{listing.title}</Text>
-        <Text style={styles.price}>${listing.price}</Text>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.price}>${price}</Text>
 
-        {listing.condition ? (
+        {condition ? (
           <View style={styles.conditionPill}>
-            <Text style={styles.conditionText}>{listing.condition}</Text>
+            <Text style={styles.conditionText}>{condition}</Text>
           </View>
         ) : null}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Description</Text>
           <Text style={styles.sectionBody}>
-            {listing.description || 'Item details will appear here once the backend returns richer listing metadata.'}
+            {description || 'No description provided.'}
           </Text>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Seller</Text>
           <View style={styles.sellerCard}>
-            <Image source={{ uri: listing.sellerAvatar }} style={styles.avatar} contentFit="cover" />
+            <Image
+              source={{ uri: seller?.avatar_url ?? (backendListing ? fallbackAvatar : mockListing.sellerAvatar) }}
+              style={styles.avatar}
+              contentFit="cover"
+            />
             <View style={styles.sellerCopy}>
               <View style={styles.sellerNameRow}>
-                <Text style={styles.sellerName}>{listing.seller}</Text>
+                <Text style={styles.sellerName}>
+                  {seller?.name ?? (backendListing ? 'Campus Seller' : mockListing.seller)}
+                </Text>
                 <MaterialIcons name="verified-user" size={16} color="#4F46E5" />
               </View>
-              <Text style={styles.sellerCollege}>{listing.college}</Text>
+              <Text style={styles.sellerCollege}>
+                {backendListing ? 'Verified Student' : mockListing.college}
+              </Text>
             </View>
           </View>
         </View>
@@ -80,11 +149,11 @@ export default function ListingDetailScreen() {
         <View style={styles.metaList}>
           <View style={styles.metaRow}>
             <MaterialIcons name="place" size={14} color="#6C7990" />
-            <Text style={styles.metaText}>{listing.location || 'Campus meetup location'}</Text>
+            <Text style={styles.metaText}>Campus meetup location</Text>
           </View>
           <View style={styles.metaRow}>
             <MaterialIcons name="schedule" size={15} color="#6C7990" />
-            <Text style={styles.metaText}>Posted {listing.postedAt || 'recently'}</Text>
+            <Text style={styles.metaText}>Posted {postedAt || 'recently'}</Text>
           </View>
         </View>
 
@@ -137,7 +206,18 @@ const styles = StyleSheet.create({
   },
   heroImage: {
     width: '100%',
-    height: 220,
+    height: 280,
+    backgroundColor: '#1a1a1a',
+  },
+  fullscreenBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fullscreenImage: {
+    width: '100%',
+    height: '100%',
   },
   urgencyBadge: {
     marginTop: 10,
