@@ -50,6 +50,7 @@ export type ListingRecord = {
   favorites_count: number;
   created_at: string;
   updated_at: string;
+  seller_name: string | null;
 };
 
 export type CreateListingPayload = {
@@ -186,6 +187,13 @@ export async function deleteAccount(accessToken: string) {
   });
 }
 
+export async function deleteListing(accessToken: string, id: string) {
+  return request<ApiEnvelope<null>>(`/api/listings/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
 export async function createListing(accessToken: string, payload: CreateListingPayload) {
   return request<ApiEnvelope<{ listing: ListingRecord }>>('/api/listings/create-listing', {
     method: 'POST',
@@ -267,8 +275,13 @@ export async function completeGoogleProfile(payload: {
   grad_year: string;
   avatar_url?: string;
 }) {
+  const { access_token, grad_year, college_name: _college_name, ...rest } = payload;
   return request<ApiEnvelope<{ user: AuthUser }>>('/api/user/update-profile', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    headers: { Authorization: `Bearer ${access_token}` },
+    body: JSON.stringify({
+      ...rest,
+      graduation_year: grad_year ? parseInt(grad_year, 10) : undefined,
+    }),
   });
 }

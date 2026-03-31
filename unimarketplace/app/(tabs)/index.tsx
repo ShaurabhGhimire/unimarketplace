@@ -1,12 +1,13 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { LayoutChangeEvent, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
+import { LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getAccessToken } from '@/lib/auth-storage';
-import { API_BASE_URL, getBackendHealth, getListings, getMarketplaceItems } from '@/lib/api';
+import { API_BASE_URL, getBackendHealth, getListings, getMarketplaceItems, type ListingFilters } from '@/lib/api';
 import {
   categoryFilters,
   locationFilters,
@@ -16,10 +17,10 @@ import {
 import { useOnboarding } from '@/lib/onboarding-context';
 
 const fallbackSellerAvatar =
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80';
+  'https://images.unsplash.com/vector-1742875355318-00d715aec3e8?q=80&w=1760&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D';
 
 const fallbackListingImage =
-  'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=900&q=80';
+  'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/No_image_available.svg/330px-No_image_available.svg.png';
 
 const nearbyCollegeMap: Record<string, string[]> = {
   MIT: ['Harvard'],
@@ -42,7 +43,8 @@ export default function BrowseScreen() {
   const [scrollY, setScrollY] = useState(0);
   const [headerHeight, setHeaderHeight] = useState(196);
 
-  useEffect(() => {
+  useFocusEffect(
+    useCallback(() => {
     let mounted = true;
 
     async function bootstrap() {
@@ -75,7 +77,7 @@ export default function BrowseScreen() {
               category: activeCategory,
               title: item.title,
               price: item.price,
-              seller: 'Campus Seller',
+              seller: item.seller_name || 'Campus Seller',
               college: data.collegeName || 'Your College',
               imageUrl: item.images?.[0] || fallbackListingImage,
               sellerAvatar: fallbackSellerAvatar,
@@ -128,7 +130,8 @@ export default function BrowseScreen() {
     return () => {
       mounted = false;
     };
-  }, [data.collegeName, activeCategory]);
+  }, [data.collegeName, activeCategory])
+  );
 
   const currentCollege = data.collegeName || 'MIT';
   const compactHeader = scrollY > 36;

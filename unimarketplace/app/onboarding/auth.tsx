@@ -4,12 +4,12 @@ import { useState } from "react";
 import {
   Alert,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { handleOAuthCallback, signInWithEmail } from "@/lib/api";
 import { saveAccessToken } from "@/lib/auth-storage";
@@ -19,7 +19,6 @@ import { getGoogleAccessTokenViaSupabase } from "@/lib/supabase-auth";
 export default function AuthEntryScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [googleTokenInput, setGoogleTokenInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const { update, reset } = useOnboarding();
@@ -57,11 +56,9 @@ export default function AuthEntryScreen() {
         accessToken: auth.session.access_token,
       });
       router.replace("/(tabs)");
-    } catch {
-      Alert.alert(
-        "Sign in failed",
-        "Invalid email or password. Please try again.",
-      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Invalid email or password. Please try again.";
+      Alert.alert("Sign in failed", message);
     } finally {
       setLoading(false);
     }
@@ -70,21 +67,11 @@ export default function AuthEntryScreen() {
   const handleGoogle = async () => {
     setGoogleLoading(true);
 
-    const supabaseToken = await getGoogleAccessTokenViaSupabase();
-
-    // Frontend-controlled token fallback while OAuth dependencies/routes are still being finalized.
-    const oauthToken =
-      supabaseToken ||
-      googleTokenInput.trim() ||
-      process.env.EXPO_PUBLIC_GOOGLE_OAUTH_TOKEN ||
-      "";
+    const oauthToken = await getGoogleAccessTokenViaSupabase();
 
     if (!oauthToken) {
       setGoogleLoading(false);
-      Alert.alert(
-        "Missing OAuth token",
-        "Either configure Supabase env + client or paste a Google OAuth access token below.",
-      );
+      Alert.alert("Google sign-in failed", "Could not complete Google sign-in. Please try again.");
       return;
     }
 
@@ -185,16 +172,7 @@ export default function AuthEntryScreen() {
             </Text>
           </Pressable>
 
-          <TextInput
-            value={googleTokenInput}
-            onChangeText={setGoogleTokenInput}
-            autoCapitalize="none"
-            placeholder="Optional: paste Google OAuth access token"
-            placeholderTextColor="#99A4B8"
-            style={styles.tokenInput}
-          />
-
-          <View style={styles.signupRow}>
+<View style={styles.signupRow}>
             <Text style={styles.signupHint}>Don&apos;t have an account?</Text>
             <Pressable onPress={handleSignup}>
               <Text style={styles.signupLink}> Signup</Text>
@@ -282,17 +260,6 @@ const styles = StyleSheet.create({
     color: "#49557A",
     fontWeight: "700",
     fontSize: 15,
-  },
-  tokenInput: {
-    marginTop: 10,
-    height: 50,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#BBC0CD",
-    paddingHorizontal: 12,
-    color: "#1E2942",
-    fontSize: 13,
-    backgroundColor: "#F8F9FC",
   },
   signupRow: {
     marginTop: 14,

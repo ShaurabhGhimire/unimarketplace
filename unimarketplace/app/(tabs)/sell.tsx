@@ -74,11 +74,9 @@ export default function SellScreen() {
       setCondition('Good');
       setMoveOutMode(false);
       setPickedImages([]);
-    } catch {
-      Alert.alert(
-        'Create listing failed',
-        'The backend rejected the request. Confirm your profile has a college_id and that your token is still valid.',
-      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      Alert.alert('Create listing failed', msg);
     } finally {
       setLoading(false);
     }

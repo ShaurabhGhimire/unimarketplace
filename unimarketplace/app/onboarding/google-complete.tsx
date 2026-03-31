@@ -13,8 +13,12 @@ const steps = ['Profile Info', 'College Details', 'Complete'];
 
 export default function GoogleCompleteScreen() {
   const { data, update } = useOnboarding();
-  const [college, setCollege] = useState(data.collegeName || usColleges[0]);
-  const [gradYear, setGradYear] = useState(data.gradYear || gradYears[1]);
+  const [college, setCollege] = useState<typeof usColleges[number]>(
+    (usColleges as readonly string[]).includes(data.collegeName) ? data.collegeName as typeof usColleges[number] : usColleges[0]
+  );
+  const [gradYear, setGradYear] = useState<typeof gradYears[number]>(
+    (gradYears as readonly string[]).includes(data.gradYear) ? data.gradYear as typeof gradYears[number] : gradYears[1]
+  );
   const [loading, setLoading] = useState(false);
 
   const handleContinue = async () => {
@@ -31,12 +35,10 @@ export default function GoogleCompleteScreen() {
       await saveAccessToken(data.accessToken);
       update({ collegeName: college, gradYear });
       router.replace('/(tabs)');
-    } catch {
+    } catch (err) {
       update({ collegeName: college, gradYear });
-      Alert.alert(
-        'Google profile route pending',
-        'Backend /api/auth/update-profilen is not live yet. Continuing in frontend demo mode.',
-      );
+      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
+      Alert.alert('Profile update failed', message);
       router.replace('/(tabs)');
     } finally {
       setLoading(false);

@@ -2,15 +2,15 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ActivityIndicator, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { marketplaceItems, messageThreads } from '@/data/mock';
-import { getListingById, type ListingRecord, type SellerProfile } from '@/lib/api';
+import { deleteListing, getListingById, type ListingRecord, type SellerProfile } from '@/lib/api';
 import { getAccessToken } from '@/lib/auth-storage';
 
 const fallbackImage = 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=900&q=80';
-const fallbackAvatar = 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80';
+const fallbackAvatar = 'https://images.unsplash.com/vector-1742875355318-00d715aec3e8?q=80&w=1480&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -21,6 +21,7 @@ export default function ListingDetailScreen() {
   const [seller, setSeller] = useState<SellerProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
 
   const isRealListing = UUID_REGEX.test(params.id ?? '');
@@ -33,6 +34,10 @@ export default function ListingDetailScreen() {
       try {
         const token = await getAccessToken();
         if (!token) return;
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          if (mounted && payload.sub) setCurrentUserId(payload.sub);
+        } catch {}
         const res = await getListingById(token, params.id);
         if (mounted && res.data?.listing) {
           setBackendListing(res.data.listing);
@@ -47,6 +52,28 @@ export default function ListingDetailScreen() {
     fetch();
     return () => { mounted = false; };
   }, [params.id, isRealListing]);
+
+  const isOwner = !!backendListing && backendListing.seller_id === currentUserId;
+
+  async function handleDelete() {
+    Alert.alert('Delete Listing', 'Are you sure you want to delete this listing?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          const token = await getAccessToken();
+          if (!token || !backendListing) return;
+          try {
+            await deleteListing(token, backendListing.id);
+            router.replace('/');
+          } catch {
+            Alert.alert('Error', 'Failed to delete listing. Please try again.');
+          }
+        },
+      },
+    ]);
+  }
 
   const mockListing = useMemo(() => {
     return marketplaceItems.find((item) => item.id === params.id) ?? marketplaceItems[0];
@@ -80,13 +107,19 @@ export default function ListingDetailScreen() {
           <Pressable style={styles.iconButton}>
             <MaterialIcons name="ios-share" size={20} color="#243047" />
           </Pressable>
-          <Pressable style={styles.iconButton} onPress={() => setSaved((value) => !value)}>
-            <MaterialIcons
-              name={saved ? 'favorite' : 'favorite-border'}
-              size={20}
-              color={saved ? '#E45569' : '#243047'}
-            />
-          </Pressable>
+          {isOwner ? (
+            <Pressable style={styles.iconButton} onPress={handleDelete}>
+              <MaterialIcons name="delete-outline" size={20} color="#DC2626" />
+            </Pressable>
+          ) : (
+            <Pressable style={styles.iconButton} onPress={() => setSaved((value) => !value)}>
+              <MaterialIcons
+                name={saved ? 'favorite' : 'favorite-border'}
+                size={20}
+                color={saved ? '#E45569' : '#243047'}
+              />
+            </Pressable>
+          )}
         </View>
       </View>
 
