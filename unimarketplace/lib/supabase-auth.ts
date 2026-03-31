@@ -7,7 +7,7 @@ type SupabaseClient = {
   auth: {
     signInWithOAuth: (params: {
       provider: 'google';
-      options?: { redirectTo?: string; skipBrowserRedirect?: boolean };
+      options?: { redirectTo?: string; skipBrowserRedirect?: boolean; queryParams?: Record<string, string> };
     }) => Promise<{ data: { url: string | null }; error: { message: string } | null }>;
   };
 };
@@ -49,6 +49,7 @@ export async function getGoogleAccessTokenViaSupabase(): Promise<string | null> 
     options: {
       redirectTo,
       skipBrowserRedirect: true,
+      queryParams: { prompt: 'select_account' },
     },
   });
 
