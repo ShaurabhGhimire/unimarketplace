@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { requestEduVerificationCode } from '@/lib/api';
 import { useOnboarding } from '@/lib/onboarding-context';
@@ -28,7 +29,7 @@ export default function EmailSignupScreen() {
       setLoading(false);
     }
 
-    update({ email: normalized, authMethod: 'email' });
+    update({ email: normalized, authMethod: 'email-signup' });
     router.push('/onboarding/email-verify');
   };
 

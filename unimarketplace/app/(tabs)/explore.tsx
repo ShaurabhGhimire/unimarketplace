@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Colors } from '@/constants/theme';
-import { categories, featuredListings } from '@/data/mock';
+import { categoryFilters, marketplaceItems } from '@/data/mock';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+
+const categories = categoryFilters.map((c) => c.label);
 
 const sortOptions = ['Newest', 'Price: Low to High', 'Price: High to Low'] as const;
 
@@ -17,8 +20,8 @@ export default function ExploreScreen() {
   const [sortBy, setSortBy] = useState<SortOption>('Newest');
 
   const listings = useMemo(() => {
-    const items = featuredListings.filter(
-      (item) => selectedCategory === 'All' || item.category === selectedCategory,
+    const items = marketplaceItems.filter(
+      (item) => selectedCategory === 'All' || item.category?.toLowerCase() === selectedCategory.toLowerCase(),
     );
 
     if (sortBy === 'Price: Low to High') {
@@ -91,11 +94,10 @@ export default function ExploreScreen() {
 
         {listings.map((item) => (
           <View key={item.id} style={[styles.resultCard, { backgroundColor: palette.card, borderColor: palette.border }]}> 
-            <Text style={styles.emoji}>{item.image}</Text>
             <View style={styles.resultContent}>
               <Text style={[styles.itemTitle, { color: palette.text }]}>{item.title}</Text>
               <Text style={[styles.itemMeta, { color: palette.muted }]}>
-                {item.campus} • {item.condition}
+                {item.college} • {item.condition}
               </Text>
               <Text style={[styles.itemPrice, { color: palette.tint }]}>${item.price}</Text>
             </View>

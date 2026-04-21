@@ -3,10 +3,10 @@ import { Image } from 'expo-image';
 import { ImagePickerAsset } from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Alert,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Switch,
