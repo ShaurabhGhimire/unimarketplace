@@ -1,4 +1,3 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,6 +5,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 
 import { gradYears, usColleges } from '@/data/colleges';
 import { signUpWithEmail } from '@/lib/api';
+import { SelectModal } from '@/components/SelectModal';
 import { saveAccessToken } from '@/lib/auth-storage';
 import { useOnboarding } from '@/lib/onboarding-context';
 
@@ -16,7 +16,6 @@ export default function SignupScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [gradYear, setGradYear] = useState<string>(gradYears[1]);
-  const [avatarUrl, setAvatarUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const { update } = useOnboarding();
 
@@ -45,7 +44,6 @@ export default function SignupScreen() {
         name: name.trim(),
         college_name: college,
         grad_year: gradYear,
-        avatar_url: avatarUrl.trim() || undefined,
       });
 
       const auth = res.data;
@@ -61,7 +59,7 @@ export default function SignupScreen() {
         collegeName: auth.user.college_name ?? college,
         email: auth.user.email,
         gradYear: auth.user.grad_year ?? gradYear,
-        avatarUrl: auth.user.avatar_url ?? avatarUrl.trim(),
+        avatarUrl: auth.user.avatar_url ?? '',
         emailVerified: false,
         accessToken: accessToken ?? '',
       });
@@ -87,17 +85,12 @@ export default function SignupScreen() {
           <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Jane Doe" />
 
           <Text style={styles.label}>College Name *</Text>
-          <Pressable
-            style={styles.select}
-            onPress={() => {
-              const idx = (usColleges as readonly string[]).indexOf(college);
-              setCollege(usColleges[(idx + 1) % usColleges.length]);
-            }}>
-            <Text style={styles.selectText} numberOfLines={1}>
-              {college}
-            </Text>
-            <MaterialIcons name="keyboard-arrow-down" size={24} color="#80889A" />
-          </Pressable>
+          <SelectModal
+            value={college}
+            options={usColleges}
+            onChange={setCollege}
+            triggerStyle={styles.select}
+          />
 
           <Text style={styles.label}>College Email (.edu) *</Text>
           <TextInput
@@ -128,23 +121,11 @@ export default function SignupScreen() {
           />
 
           <Text style={styles.label}>Graduation Year *</Text>
-          <Pressable
-            style={styles.select}
-            onPress={() => {
-              const idx = (gradYears as readonly string[]).indexOf(gradYear);
-              setGradYear(gradYears[(idx + 1) % gradYears.length]);
-            }}>
-            <Text style={styles.selectText}>{gradYear}</Text>
-            <MaterialIcons name="keyboard-arrow-down" size={24} color="#80889A" />
-          </Pressable>
-
-          <Text style={styles.label}>Profile Picture URL (Optional)</Text>
-          <TextInput
-            style={styles.input}
-            value={avatarUrl}
-            onChangeText={setAvatarUrl}
-            autoCapitalize="none"
-            placeholder="https://..."
+          <SelectModal
+            value={gradYear}
+            options={gradYears}
+            onChange={setGradYear}
+            triggerStyle={styles.select}
           />
 
           <View style={styles.row}>
@@ -196,12 +177,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  selectText: {
-    flex: 1,
-    color: '#1E2942',
-    fontSize: 15,
-    marginRight: 8,
   },
   row: { marginTop: 16, flexDirection: 'row', gap: 10 },
   backBtn: {

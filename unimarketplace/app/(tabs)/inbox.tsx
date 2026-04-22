@@ -1,12 +1,54 @@
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { messageThreads } from '@/data/mock';
+import { getConversations, type ConversationSummary } from '@/lib/api';
+import { getAccessToken } from '@/lib/auth-storage';
+
+function formatRelativeTime(iso: string | null): string {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+const fallbackAvatar = 'https://images.unsplash.com/vector-1742875355318-00d715aec3e8?q=80&w=1480&auto=format&fit=crop';
 
 export default function InboxScreen() {
   const insets = useSafeAreaInsets();
+  const [threads, setThreads] = useState<ConversationSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      let mounted = true;
+      async function load() {
+        setLoading(true);
+        setError(null);
+        try {
+          const token = await getAccessToken();
+          if (!token) return;
+          const payload = await getConversations(token);
+          if (mounted && payload.status === 'success') {
+            setThreads(payload.data?.conversations ?? []);
+          }
+        } catch {
+          if (mounted) setError('Failed to load messages');
+        } finally {
+          if (mounted) setLoading(false);
+        }
+      }
+      load();
+      return () => { mounted = false; };
+    }, [])
+  );
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -15,35 +57,61 @@ export default function InboxScreen() {
         <Text style={styles.headerSubtitle}>Recent conversations</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        {messageThreads.map((thread) => (
-          <Pressable
-            key={thread.id}
-            style={styles.threadRow}
-            onPress={() => router.push(`/messages/${thread.id}`)}>
-            <View style={styles.avatarWrap}>
-              <Image source={{ uri: thread.avatar }} style={styles.avatar} contentFit="cover" />
-              {thread.unreadCount > 0 ? <View style={styles.unreadDot} /> : null}
-            </View>
-
-            <View style={styles.body}>
-              <View style={styles.topLine}>
-                <Text numberOfLines={1} style={styles.name}>
-                  {thread.userName}
-                </Text>
-                <Text style={styles.time}>{thread.updatedAt}</Text>
+      {loading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color="#4F46E5" />
+        </View>
+      ) : error ? (
+        <View style={styles.centered}>
+          <Text style={styles.emptyText}>{error}</Text>
+          <Pressable onPress={() => setLoading(true)} style={styles.retryButton}>
+            <Text style={styles.retryText}>Retry</Text>
+          </Pressable>
+        </View>
+      ) : threads.length === 0 ? (
+        <View style={styles.centered}>
+          <Text style={styles.emptyText}>No conversations yet</Text>
+          <Text style={styles.emptyHint}>Message a seller from any listing to get started</Text>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+          {threads.map((thread) => (
+            <Pressable
+              key={thread.id}
+              style={styles.threadRow}
+              onPress={() => router.push(`/messages/${thread.id}`)}>
+              <View style={styles.avatarWrap}>
+                <Image
+                  source={{ uri: thread.otherUser.avatar_url ?? fallbackAvatar }}
+                  style={styles.avatar}
+                  contentFit="cover"
+                />
+                {thread.unreadCount > 0 ? <View style={styles.unreadDot} /> : null}
               </View>
 
-              <Text numberOfLines={1} style={[styles.preview, thread.unreadCount > 0 ? styles.previewUnread : null]}>
-                {thread.lastMessage}
-              </Text>
-              <Text numberOfLines={1} style={styles.listing}>
-                Re: {thread.listingTitle}
-              </Text>
-            </View>
-          </Pressable>
-        ))}
-      </ScrollView>
+              <View style={styles.body}>
+                <View style={styles.topLine}>
+                  <Text numberOfLines={1} style={styles.name}>
+                    {thread.otherUser.name ?? 'Unknown User'}
+                  </Text>
+                  <Text style={styles.time}>
+                    {formatRelativeTime(thread.last_message_at ?? thread.created_at)}
+                  </Text>
+                </View>
+
+                <Text
+                  numberOfLines={1}
+                  style={[styles.preview, thread.unreadCount > 0 ? styles.previewUnread : null]}>
+                  {thread.lastMessage?.content ?? 'No messages yet'}
+                </Text>
+                <Text numberOfLines={1} style={styles.listing}>
+                  Re: {thread.listing?.title ?? 'Listing'}
+                </Text>
+              </View>
+            </Pressable>
+          ))}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -70,6 +138,36 @@ const styles = StyleSheet.create({
     marginTop: 3,
     color: '#768398',
     fontSize: 12,
+  },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 32,
+  },
+  emptyText: {
+    color: '#334155',
+    fontSize: 15,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  emptyHint: {
+    color: '#768398',
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 4,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: '#4F46E5',
+  },
+  retryText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
   },
   container: {
     paddingHorizontal: 12,

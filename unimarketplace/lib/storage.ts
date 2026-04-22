@@ -2,6 +2,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { createClient } from '@supabase/supabase-js';
 
 const BUCKET = 'listing-images';
+const AVATAR_BUCKET = 'avatars';
 const MAX_IMAGES = 5;
 
 function getSupabaseStorage(accessToken: string) {
@@ -59,4 +60,48 @@ export async function uploadImages(
   }
 
   return urls;
+}
+
+export async function pickAvatar(): Promise<ImagePicker.ImagePickerAsset | null> {
+  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (status !== 'granted') {
+    throw new Error('Camera roll permission is required to upload a photo.');
+  }
+
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: 'images',
+    allowsMultipleSelection: false,
+    allowsEditing: true,
+    aspect: [1, 1],
+    quality: 0.8,
+  });
+
+  if (result.canceled) return null;
+  return result.assets[0] ?? null;
+}
+
+export async function uploadAvatar(
+  asset: ImagePicker.ImagePickerAsset,
+  accessToken: string,
+): Promise<string> {
+  const supabase = getSupabaseStorage(accessToken);
+  const ext = asset.uri.split('.').pop() ?? 'jpg';
+  const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+  const formData = new FormData();
+  formData.append('file', {
+    uri: asset.uri,
+    name: filename,
+    type: asset.mimeType ?? 'image/jpeg',
+  } as unknown as Blob);
+
+  const { error } = await supabase.storage.from(AVATAR_BUCKET).upload(filename, formData, {
+    contentType: asset.mimeType ?? 'image/jpeg',
+    upsert: false,
+  });
+
+  if (error) throw new Error(`Avatar upload failed: ${error.message}`);
+
+  const { data } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(filename);
+  return data.publicUrl;
 }

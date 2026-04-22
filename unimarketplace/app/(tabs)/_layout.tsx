@@ -1,15 +1,35 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { getConversations } from '@/lib/api';
+import { getAccessToken } from '@/lib/auth-storage';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const insets = useSafeAreaInsets();
+  const [totalUnread, setTotalUnread] = useState(0);
+
+  useEffect(() => {
+    async function fetchUnread() {
+      try {
+        const token = await getAccessToken();
+        if (!token) return;
+        const res = await getConversations(token);
+        if (res.status === 'success') {
+          const count = (res.data?.conversations ?? []).reduce((sum, c) => sum + c.unreadCount, 0);
+          setTotalUnread(count);
+        }
+      } catch {}
+    }
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <Tabs
@@ -49,7 +69,7 @@ export default function TabLayout() {
         name="inbox"
         options={{
           title: 'Messages',
-          tabBarBadge: 1,
+          tabBarBadge: totalUnread > 0 ? totalUnread : undefined,
           tabBarIcon: ({ color }) => <IconSymbol size={20} name="message.fill" color={color} />,
         }}
       />

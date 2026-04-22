@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { gradYears, usColleges } from '@/data/colleges';
+import { SelectModal } from '@/components/SelectModal';
 import { completeGoogleProfile } from '@/lib/api';
 import { saveAccessToken } from '@/lib/auth-storage';
 import { useOnboarding } from '@/lib/onboarding-context';
@@ -73,28 +74,20 @@ export default function GoogleCompleteScreen() {
         </View>
 
         <Text style={styles.label}>College Name</Text>
-        <Pressable
-          style={styles.select}
-          onPress={() => {
-            const idx = usColleges.indexOf(college);
-            setCollege(usColleges[(idx + 1) % usColleges.length]);
-          }}>
-          <Text style={styles.selectText} numberOfLines={1}>
-            {college}
-          </Text>
-          <MaterialIcons name="keyboard-arrow-down" size={20} color="#7D869A" />
-        </Pressable>
+        <SelectModal
+          value={college}
+          options={usColleges}
+          onChange={setCollege}
+          triggerStyle={styles.select}
+        />
 
         <Text style={styles.label}>Graduation Year</Text>
-        <Pressable
-          style={styles.select}
-          onPress={() => {
-            const idx = gradYears.indexOf(gradYear);
-            setGradYear(gradYears[(idx + 1) % gradYears.length]);
-          }}>
-          <Text style={styles.selectText}>{gradYear}</Text>
-          <MaterialIcons name="keyboard-arrow-down" size={20} color="#7D869A" />
-        </Pressable>
+        <SelectModal
+          value={gradYear}
+          options={gradYears}
+          onChange={setGradYear}
+          triggerStyle={styles.select}
+        />
 
         <View style={styles.infoBox}>
           <Text style={styles.infoTitle}>Verified student onboarding</Text>
@@ -214,12 +207,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  selectText: {
-    flex: 1,
-    color: '#1E2942',
-    fontSize: 15,
-    marginRight: 8,
   },
   infoBox: {
     marginTop: 14,

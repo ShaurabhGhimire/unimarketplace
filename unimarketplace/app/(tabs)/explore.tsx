@@ -3,7 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Colors } from '@/constants/theme';
-import { categoryFilters, marketplaceItems } from '@/data/mock';
+import { categoryFilters } from '@/data/mock';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const categories = categoryFilters.map((c) => c.label);
@@ -19,21 +19,7 @@ export default function ExploreScreen() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortBy, setSortBy] = useState<SortOption>('Newest');
 
-  const listings = useMemo(() => {
-    const items = marketplaceItems.filter(
-      (item) => selectedCategory === 'All' || item.category?.toLowerCase() === selectedCategory.toLowerCase(),
-    );
-
-    if (sortBy === 'Price: Low to High') {
-      return [...items].sort((a, b) => a.price - b.price);
-    }
-
-    if (sortBy === 'Price: High to Low') {
-      return [...items].sort((a, b) => b.price - a.price);
-    }
-
-    return items;
-  }, [selectedCategory, sortBy]);
+  const listings = useMemo(() => [], [selectedCategory, sortBy]);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: palette.background }]}> 

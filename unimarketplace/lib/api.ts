@@ -51,6 +51,7 @@ export type ListingRecord = {
   created_at: string;
   updated_at: string;
   seller_name: string | null;
+  seller_avatar_url: string | null;
 };
 
 export type CreateListingPayload = {
@@ -145,6 +146,23 @@ export type SellerProfile = {
   college_id: string | null;
 };
 
+export type PublicProfile = {
+  id: string;
+  name: string | null;
+  avatar_url: string | null;
+  graduation_year: number | null;
+  bio: string | null;
+  phone_number: string | null;
+  college_name: string | null;
+};
+
+export async function getPublicProfile(accessToken: string, id: string) {
+  return request<ApiEnvelope<{ profile: PublicProfile }>>(`/api/user/profile/${id}`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
 export async function getListingById(accessToken: string, id: string) {
   return request<ApiEnvelope<{ listing: ListingRecord; seller: SellerProfile | null }>>(`/api/listings/${id}`, {
     method: 'GET',
@@ -162,6 +180,7 @@ export type ProfileRecord = {
   college_id: string | null;
   graduation_year: number | null;
   bio: string | null;
+  phone_number: string | null;
   is_moving_out: boolean;
 };
 
@@ -172,7 +191,10 @@ export async function getMyProfile(accessToken: string) {
   });
 }
 
-export async function updateProfile(accessToken: string, payload: { name?: string; graduation_year?: number | null }) {
+export async function updateProfile(
+  accessToken: string,
+  payload: { name?: string; graduation_year?: number | null; bio?: string; phone_number?: string; avatar_url?: string },
+) {
   return request<ApiEnvelope<{ user: ProfileRecord }>>('/api/user/update-profile', {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -184,6 +206,22 @@ export async function deleteAccount(accessToken: string) {
   return request<ApiEnvelope<null>>('/api/user/delete-account', {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export async function getMyListings(accessToken: string): Promise<ListingRecord[]> {
+  const res = await request<ApiEnvelope<{ listings: ListingRecord[] }>>('/api/listings/my-listings', {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return res.data?.listings ?? [];
+}
+
+export async function updateListingStatus(accessToken: string, id: string, status: 'active' | 'sold') {
+  return request<ApiEnvelope<{ listing: ListingRecord }>>(`/api/listings/${id}`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ status }),
   });
 }
 
@@ -264,6 +302,96 @@ export async function signUpWithEmail(payload: {
   return request<ApiEnvelope<AuthResult>>('/api/auth/signup', {
     method: 'POST',
     body: JSON.stringify(payload),
+  });
+}
+
+// ─── Messaging ────────────────────────────────────────────────────────────────
+
+export type ConversationParticipant = {
+  id: string;
+  name: string | null;
+  avatar_url: string | null;
+};
+
+export type ListingPreview = {
+  id: string;
+  title: string;
+  images: string[];
+  price?: number;
+  status?: string;
+};
+
+export type MessageRecord = {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  content: string;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string;
+};
+
+export type ConversationSummary = {
+  id: string;
+  listing_id: string;
+  buyer_id: string;
+  seller_id: string;
+  is_active: boolean;
+  last_message_at: string | null;
+  created_at: string;
+  otherUser: ConversationParticipant;
+  listing: ListingPreview | null;
+  lastMessage: MessageRecord | null;
+  unreadCount: number;
+};
+
+export type ConversationDetail = {
+  id: string;
+  listing_id: string;
+  buyer_id: string;
+  seller_id: string;
+  is_active: boolean;
+  last_message_at: string | null;
+  created_at: string;
+  listing: ListingPreview | null;
+  buyer: ConversationParticipant;
+  seller: ConversationParticipant;
+};
+
+export async function getConversations(accessToken: string) {
+  return request<ApiEnvelope<{ conversations: ConversationSummary[] }>>('/api/conversations', {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export async function getOrCreateConversation(accessToken: string, listing_id: string) {
+  return request<ApiEnvelope<{ conversation: { id: string; buyer_id: string; seller_id: string; listing_id: string; is_active: boolean; created_at: string } }>>('/api/conversations', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ listing_id }),
+  });
+}
+
+export async function getConversationById(accessToken: string, id: string) {
+  return request<ApiEnvelope<{ conversation: ConversationDetail; messages: MessageRecord[] }>>(`/api/conversations/${id}`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export async function sendMessage(accessToken: string, conversationId: string, content: string) {
+  return request<ApiEnvelope<{ message: MessageRecord }>>(`/api/conversations/${conversationId}/messages`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ content }),
+  });
+}
+
+export async function markConversationRead(accessToken: string, conversationId: string) {
+  return request<ApiEnvelope<{ updated: boolean }>>(`/api/conversations/${conversationId}/read`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
 }
 

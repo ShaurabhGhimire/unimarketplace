@@ -6,7 +6,7 @@ export type MarketplaceItem = {
   seller: string;
   college: string;
   imageUrl: string;
-  sellerAvatar: string;
+  sellerAvatar: string | null;
   daysLeft?: string;
   description?: string;
   location?: string;
@@ -45,7 +45,6 @@ export const categoryFilters = [
   { id: 'other', label: 'Other', icon: 'category' },
 ];
 
-export const locationFilters = ['My College', 'Nearby Colleges', 'All Colleges'];
 
 export const marketplaceItems: MarketplaceItem[] = [
   {

@@ -15,12 +15,29 @@ import {
   View,
 } from 'react-native';
 
+import { SelectModal } from '@/components/SelectModal';
 import { getAccessToken } from '@/lib/auth-storage';
 import { createListing } from '@/lib/api';
 import { pickImages, uploadImages } from '@/lib/storage';
 
 const categories = ['Furniture', 'Electronics', 'Books', 'Kitchen', 'Decor', 'Clothing', 'Sports', 'Other'];
 const conditions = ['New', 'Like New', 'Good', 'Fair'];
+
+function buildMoveOutOptions(): { labels: string[]; isoMap: Record<string, string> } {
+  const labels: string[] = [];
+  const isoMap: Record<string, string> = {};
+  const today = new Date();
+  for (let i = 1; i <= 30; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    const label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    labels.push(label);
+    isoMap[label] = d.toISOString();
+  }
+  return { labels, isoMap };
+}
+
+const { labels: moveOutLabels, isoMap: moveOutIsoMap } = buildMoveOutOptions();
 
 export default function SellScreen() {
   const [title, setTitle] = useState('');
@@ -29,12 +46,18 @@ export default function SellScreen() {
   const [category, setCategory] = useState('Furniture');
   const [condition, setCondition] = useState('Good');
   const [moveOutMode, setMoveOutMode] = useState(false);
+  const [moveOutDate, setMoveOutDate] = useState(moveOutLabels[6]);
   const [pickedImages, setPickedImages] = useState<ImagePickerAsset[]>([]);
   const [loading, setLoading] = useState(false);
 
   const canPost = useMemo(() => {
-    return title.trim().length > 0 && description.trim().length > 0 && Number(price) > 0;
-  }, [description, price, title]);
+    return (
+      title.trim().length > 0 &&
+      description.trim().length > 0 &&
+      Number(price) > 0 &&
+      (!moveOutMode || !!moveOutDate)
+    );
+  }, [description, moveOutDate, moveOutMode, price, title]);
 
   const handleSubmit = async () => {
     if (!canPost || loading) {
@@ -57,7 +80,7 @@ export default function SellScreen() {
         price: Number(price),
         category,
         condition,
-        move_out_date: moveOutMode ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() : null,
+        move_out_date: moveOutMode ? moveOutIsoMap[moveOutDate] : null,
         images,
       });
 
@@ -73,6 +96,7 @@ export default function SellScreen() {
       setCategory('Furniture');
       setCondition('Good');
       setMoveOutMode(false);
+      setMoveOutDate(moveOutLabels[6]);
       setPickedImages([]);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -151,29 +175,22 @@ export default function SellScreen() {
           </View>
 
           <Text style={styles.fieldLabel}>Category *</Text>
-          <Pressable
-            style={styles.select}
-            onPress={() => {
-              const idx = categories.indexOf(category);
-              setCategory(categories[(idx + 1) % categories.length]);
-            }}>
-            <View style={styles.selectLeft}>
-              <MaterialIcons name="chair" size={20} color="#A26B45" />
-              <Text style={styles.selectText}>{category}</Text>
-            </View>
-            <MaterialIcons name="keyboard-arrow-down" size={28} color="#8F8F8F" />
-          </Pressable>
+          <SelectModal
+            value={category}
+            options={categories}
+            onChange={setCategory}
+            triggerStyle={styles.select}
+            triggerTextStyle={styles.selectText}
+          />
 
           <Text style={styles.fieldLabel}>Condition *</Text>
-          <Pressable
-            style={styles.select}
-            onPress={() => {
-              const idx = conditions.indexOf(condition);
-              setCondition(conditions[(idx + 1) % conditions.length]);
-            }}>
-            <Text style={styles.selectText}>{condition}</Text>
-            <MaterialIcons name="keyboard-arrow-down" size={28} color="#8F8F8F" />
-          </Pressable>
+          <SelectModal
+            value={condition}
+            options={conditions}
+            onChange={setCondition}
+            triggerStyle={styles.select}
+            triggerTextStyle={styles.selectText}
+          />
         </View>
 
         <View style={styles.card}>
@@ -185,19 +202,26 @@ export default function SellScreen() {
           </View>
 
           <Text style={styles.moveOutCopy}>
-            Enable this if you&apos;re moving out soon. The backend will mark the listing urgent and attach a move-out deadline.
+            Enable this if you&apos;re moving out soon. Your listing will be marked urgent with your move-out deadline.
           </Text>
 
-          <Pressable style={styles.modeBtn} onPress={() => router.push('/move-out-mode')}>
-            <Text style={styles.modeBtnText}>
-              {moveOutMode ? 'Move-Out Mode Enabled' : 'Review Move-Out Mode'}
-            </Text>
-          </Pressable>
-
           <View style={styles.inlineSwitchRow}>
-            <Text style={styles.switchLabel}>Quick toggle</Text>
+            <Text style={styles.switchLabel}>Move-Out Mode</Text>
             <Switch value={moveOutMode} onValueChange={setMoveOutMode} trackColor={{ true: '#646AE8' }} />
           </View>
+
+          {moveOutMode && (
+            <>
+              <Text style={styles.dateLabel}>Move-out date (within 30 days)</Text>
+              <SelectModal
+                value={moveOutDate}
+                options={moveOutLabels}
+                onChange={setMoveOutDate}
+                triggerStyle={styles.select}
+                triggerTextStyle={styles.selectText}
+              />
+            </>
+          )}
         </View>
 
         <Pressable
@@ -342,11 +366,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#F6F6F8',
   },
-  selectLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
   selectText: {
     color: '#1E2942',
     fontSize: 18,
@@ -367,25 +386,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
   },
+  dateLabel: {
+    marginTop: 12,
+    marginBottom: 6,
+    color: '#5E7192',
+    fontSize: 13,
+    fontWeight: '600',
+  },
   moveOutCopy: {
     marginTop: 12,
     color: '#5E7192',
     fontSize: 16,
     lineHeight: 26,
-  },
-  modeBtn: {
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: '#AFB2FA',
-    height: 62,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modeBtnText: {
-    color: '#5962E8',
-    fontSize: 17,
-    fontWeight: '700',
   },
   inlineSwitchRow: {
     marginTop: 14,

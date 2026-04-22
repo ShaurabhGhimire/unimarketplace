@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { SelectModal } from '@/components/SelectModal';
 import { useOnboarding } from '@/lib/onboarding-context';
 
 const years = ['2026', '2027', '2028', '2029', '2030'];
@@ -100,15 +101,12 @@ export default function ProfileDetailsScreen() {
         />
 
         <Text style={styles.label}>Expected Graduation Year</Text>
-        <Pressable
-          style={styles.input}
-          onPress={() => {
-            const index = years.indexOf(gradYear);
-            setGradYear(years[(index + 1) % years.length]);
-          }}>
-          <Text style={styles.inputText}>{gradYear}</Text>
-          <MaterialIcons name="keyboard-arrow-down" size={20} color="#7D869A" />
-        </Pressable>
+        <SelectModal
+          value={gradYear}
+          options={years}
+          onChange={setGradYear}
+          triggerStyle={styles.input}
+        />
 
         <View style={styles.infoBox}>
           <Text style={styles.infoTitle}>Why we ask this</Text>
@@ -265,10 +263,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#FCFCFE',
-  },
-  inputText: {
-    color: '#1E2942',
-    fontSize: 16,
   },
   infoBox: {
     marginTop: 14,

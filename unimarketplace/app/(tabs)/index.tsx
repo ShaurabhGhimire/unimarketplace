@@ -7,38 +7,22 @@ import { LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getAccessToken } from '@/lib/auth-storage';
-import { API_BASE_URL, getBackendHealth, getListings, getMarketplaceItems, type ListingFilters } from '@/lib/api';
-import {
-  categoryFilters,
-  locationFilters,
-  marketplaceItems,
-  type MarketplaceItem,
-} from '@/data/mock';
+import { API_BASE_URL, getBackendHealth, getListings, type ListingFilters } from '@/lib/api';
+import { categoryFilters, type MarketplaceItem } from '@/data/mock';
 import { useOnboarding } from '@/lib/onboarding-context';
-
-const fallbackSellerAvatar =
-  'https://images.unsplash.com/vector-1742875355318-00d715aec3e8?q=80&w=1760&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D';
 
 const fallbackListingImage =
   'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/No_image_available.svg/330px-No_image_available.svg.png';
 
-const nearbyCollegeMap: Record<string, string[]> = {
-  MIT: ['Harvard'],
-  'Massachusetts Institute of Technology': ['Harvard'],
-  Harvard: ['MIT'],
-  Stanford: ['University of California, Berkeley'],
-  'California State University, East Bay': ['Stanford'],
-};
 
 export default function BrowseScreen() {
   const { data } = useOnboarding();
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
-  const [activeLocation, setActiveLocation] = useState('All Colleges');
   const [moveOutDeals, setMoveOutDeals] = useState(false);
   const [savedIds, setSavedIds] = useState<string[]>([]);
-  const [items, setItems] = useState<MarketplaceItem[]>(marketplaceItems);
+  const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [apiStatus, setApiStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const [scrollY, setScrollY] = useState(0);
   const [headerHeight, setHeaderHeight] = useState(196);
@@ -55,7 +39,6 @@ export default function BrowseScreen() {
       } catch {
         if (!mounted) return;
         setApiStatus('offline');
-        setItems(marketplaceItems);
         return;
       }
 
@@ -71,57 +54,25 @@ export default function BrowseScreen() {
           const backendListings = await getListings(accessToken, filters);
           if (!mounted) return;
 
-          if (backendListings.length > 0) {
-            const normalized = backendListings.map((item) => ({
-              id: item.id,
-              category: activeCategory,
-              title: item.title,
-              price: item.price,
-              seller: item.seller_name || 'Campus Seller',
-              college: data.collegeName || 'Your College',
-              imageUrl: item.images?.[0] || fallbackListingImage,
-              sellerAvatar: fallbackSellerAvatar,
-              daysLeft: item.is_urgent ? 'Urgent' : undefined,
-              description: item.description,
-              location: 'Campus meetup location',
-              postedAt: item.created_at?.slice(0, 10),
-              condition: item.condition,
-            }));
-            setItems(normalized);
-            return;
-          }
+          const normalized = backendListings.map((item) => ({
+            id: item.id,
+            category: activeCategory,
+            title: item.title,
+            price: item.price,
+            seller: item.seller_name || 'Campus Seller',
+            college: data.collegeName || 'Your College',
+            imageUrl: item.images?.[0] || fallbackListingImage,
+            sellerAvatar: item.seller_avatar_url ?? null,
+            daysLeft: item.is_urgent ? 'Urgent' : undefined,
+            description: item.description,
+            location: 'Campus meetup location',
+            postedAt: item.created_at?.slice(0, 10),
+            condition: item.condition,
+          }));
+          setItems(normalized);
         } catch {
           if (!mounted) return;
         }
-      }
-
-      try {
-        const legacyItems = await getMarketplaceItems();
-        if (!mounted) return;
-
-        if (legacyItems.length > 0) {
-          const normalized = legacyItems.map((item, index) => ({
-            id: item.id ?? `backend-${index}`,
-            category: 'all',
-            title: item.title ?? 'Marketplace Item',
-            price: item.price ?? 0,
-            seller: item.seller ?? 'Campus Seller',
-            college: item.college ?? 'Your College',
-            imageUrl: item.image_url ?? fallbackListingImage,
-            sellerAvatar: item.seller_avatar ?? fallbackSellerAvatar,
-            daysLeft: item.days_left,
-            description: 'Backend listing loaded successfully.',
-            location: 'Campus meetup location',
-            postedAt: '2026-03-16',
-            condition: 'Good',
-          }));
-          setItems(normalized);
-        } else {
-          setItems(marketplaceItems);
-        }
-      } catch {
-        if (!mounted) return;
-        setItems(marketplaceItems);
       }
     }
 
@@ -133,12 +84,10 @@ export default function BrowseScreen() {
   }, [data.collegeName, activeCategory])
   );
 
-  const currentCollege = data.collegeName || 'MIT';
   const compactHeader = scrollY > 36;
   const hideFilters = scrollY > 12;
 
   const filteredItems = useMemo(() => {
-    const nearbyColleges = nearbyCollegeMap[currentCollege] ?? [];
     return items.filter((item) => {
       const matchesQuery =
         !query.trim() ||
@@ -146,17 +95,9 @@ export default function BrowseScreen() {
         item.description?.toLowerCase().includes(query.toLowerCase());
       const matchesCategory = activeCategory === 'all' || item.category === activeCategory;
       const matchesMoveOut = !moveOutDeals || Boolean(item.daysLeft);
-
-      let matchesLocation = true;
-      if (activeLocation === 'My College') {
-        matchesLocation = item.college === currentCollege;
-      } else if (activeLocation === 'Nearby Colleges') {
-        matchesLocation = nearbyColleges.includes(item.college);
-      }
-
-      return matchesQuery && matchesCategory && matchesMoveOut && matchesLocation;
+      return matchesQuery && matchesCategory && matchesMoveOut;
     });
-  }, [activeCategory, activeLocation, currentCollege, items, moveOutDeals, query]);
+  }, [activeCategory, items, moveOutDeals, query]);
 
   function handleHeaderLayout(event: LayoutChangeEvent) {
     setHeaderHeight(event.nativeEvent.layout.height);
@@ -223,21 +164,6 @@ export default function BrowseScreen() {
               })}
             </ScrollView>
 
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.inlineRow}>
-              {locationFilters.map((location) => {
-                const active = location === activeLocation;
-                return (
-                  <Pressable
-                    key={location}
-                    onPress={() => setActiveLocation(location)}
-                    style={[styles.locationChip, active ? styles.locationChipActive : null]}>
-                    <Text style={[styles.locationText, active ? styles.locationTextActive : null]}>
-                      {location}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
           </>
         ) : null}
 
@@ -300,7 +226,13 @@ export default function BrowseScreen() {
                 <Text style={styles.price}>${item.price}</Text>
                 {item.condition ? <Text style={styles.condition}>{item.condition}</Text> : null}
                 <View style={styles.sellerRow}>
-                  <Image source={{ uri: item.sellerAvatar }} style={styles.avatar} contentFit="cover" />
+                  {item.sellerAvatar ? (
+                    <Image source={{ uri: item.sellerAvatar }} style={styles.avatar} contentFit="cover" />
+                  ) : (
+                    <View style={[styles.avatar, styles.avatarInitialWrap]}>
+                      <Text style={styles.avatarInitial}>{(item.seller || '?').charAt(0).toUpperCase()}</Text>
+                    </View>
+                  )}
                   <Text numberOfLines={1} style={styles.sellerName}>
                     {item.seller}
                   </Text>
@@ -592,6 +524,16 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
+  },
+  avatarInitialWrap: {
+    backgroundColor: '#4F46E5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitial: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
   },
   sellerName: {
     flex: 1,
