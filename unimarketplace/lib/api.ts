@@ -67,6 +67,7 @@ export type CreateListingPayload = {
 const DEFAULT_API_URL = 'http://localhost:3000';
 
 export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? DEFAULT_API_URL;
+console.log("CURRENT API URL:", API_BASE_URL);
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
