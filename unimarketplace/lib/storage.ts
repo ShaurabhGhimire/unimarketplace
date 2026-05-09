@@ -1,9 +1,24 @@
 import * as ImagePicker from 'expo-image-picker';
+import Constants from 'expo-constants';
 import { createClient } from '@supabase/supabase-js';
 
 const BUCKET = 'listing-images';
 const AVATAR_BUCKET = 'avatars';
 const MAX_IMAGES = 5;
+
+
+async function compressImage(uri: string, maxWidth: number, quality: number): Promise<string> {
+  if (Constants.executionEnvironment === 'storeClient') return uri;
+  try {
+    const { ImageManipulator, SaveFormat } = await import('expo-image-manipulator');
+    const ctx = ImageManipulator.manipulate(uri).resize({ width: maxWidth });
+    const rendered = await ctx.renderAsync();
+    const saved = await rendered.saveAsync({ compress: quality, format: SaveFormat.JPEG });
+    return saved.uri;
+  } catch {
+    return uri;
+  }
+}
 
 function getSupabaseStorage(accessToken: string) {
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL!;
@@ -38,18 +53,18 @@ export async function uploadImages(
   const urls: string[] = [];
 
   for (const asset of assets) {
-    const ext = asset.uri.split('.').pop() ?? 'jpg';
-    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const compressedUri = await compressImage(asset.uri, 1200, 0.75);
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
 
     const formData = new FormData();
     formData.append('file', {
-      uri: asset.uri,
+      uri: compressedUri,
       name: filename,
-      type: asset.mimeType ?? 'image/jpeg',
+      type: 'image/jpeg',
     } as unknown as Blob);
 
     const { error } = await supabase.storage.from(BUCKET).upload(filename, formData, {
-      contentType: asset.mimeType ?? 'image/jpeg',
+      contentType: 'image/jpeg',
       upsert: false,
     });
 
@@ -85,18 +100,18 @@ export async function uploadAvatar(
   accessToken: string,
 ): Promise<string> {
   const supabase = getSupabaseStorage(accessToken);
-  const ext = asset.uri.split('.').pop() ?? 'jpg';
-  const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const compressedUri = await compressImage(asset.uri, 400, 0.8);
+  const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
 
   const formData = new FormData();
   formData.append('file', {
-    uri: asset.uri,
+    uri: compressedUri,
     name: filename,
-    type: asset.mimeType ?? 'image/jpeg',
+    type: 'image/jpeg',
   } as unknown as Blob);
 
   const { error } = await supabase.storage.from(AVATAR_BUCKET).upload(filename, formData, {
-    contentType: asset.mimeType ?? 'image/jpeg',
+    contentType: 'image/jpeg',
     upsert: false,
   });
 
