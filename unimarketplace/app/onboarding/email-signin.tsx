@@ -23,10 +23,11 @@ export default function EmailSigninScreen() {
     try {
       await requestEduVerificationCode(normalized);
     } catch {
-      Alert.alert('Using demo mode', 'Email code endpoint is not live yet. Use code 123456.');
-    } finally {
       setLoading(false);
+      Alert.alert('Error', 'Failed to send verification code. Please try again.');
+      return;
     }
+    setLoading(false);
 
     reset();
     update({ email: normalized, authMethod: 'email-signin' });

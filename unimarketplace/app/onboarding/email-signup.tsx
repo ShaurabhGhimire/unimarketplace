@@ -23,11 +23,11 @@ export default function EmailSignupScreen() {
     try {
       await requestEduVerificationCode(normalized);
     } catch {
-      // Keep frontend unblocked while backend endpoint is under development.
-      Alert.alert('Using demo mode', 'Email code endpoint is not live yet. Use code 123456.');
-    } finally {
       setLoading(false);
+      Alert.alert('Error', 'Failed to send verification code. Please try again.');
+      return;
     }
+    setLoading(false);
 
     update({ email: normalized, authMethod: 'email-signup' });
     router.push('/onboarding/email-verify');

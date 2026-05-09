@@ -22,14 +22,13 @@ export default function EmailVerifyScreen() {
     setLoading(true);
     let verifiedToken: string | null = null;
     try {
-      const result = await verifyEduCode(data.email, code.trim());
+      const otpType = data.authMethod === 'email-signup' ? 'signup' : 'email';
+      const result = await verifyEduCode(data.email, code.trim(), otpType);
       verifiedToken = result.data?.session?.access_token ?? null;
     } catch {
-      if (!__DEV__ || code.trim() !== '123456') {
-        setLoading(false);
-        Alert.alert('Verification failed', 'Invalid or expired code. Please try again.');
-        return;
-      }
+      setLoading(false);
+      Alert.alert('Verification failed', 'Invalid or expired code. Please try again.');
+      return;
     }
 
     if (verifiedToken) {
@@ -60,7 +59,7 @@ export default function EmailVerifyScreen() {
           onChangeText={setCode}
           keyboardType="number-pad"
           style={styles.input}
-          placeholder="123456"
+          placeholder="Enter code"
           placeholderTextColor="#98A3B5"
         />
 

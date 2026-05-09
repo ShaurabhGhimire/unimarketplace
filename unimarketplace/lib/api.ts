@@ -276,10 +276,10 @@ export async function requestEduVerificationCode(email: string) {
   });
 }
 
-export async function verifyEduCode(email: string, token: string) {
+export async function verifyEduCode(email: string, token: string, type: 'signup' | 'email' = 'email') {
   return request<ApiEnvelope<AuthResult>>('/api/auth/verify-otp', {
     method: 'POST',
-    body: JSON.stringify({ email, token }),
+    body: JSON.stringify({ email, token, type }),
   });
 }
 
