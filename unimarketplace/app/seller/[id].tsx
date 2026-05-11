@@ -1,6 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Image } from 'expo-image';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -41,6 +41,7 @@ export default function SellerProfileScreen() {
   if (loading) {
     return (
       <SafeAreaView style={[styles.safe, styles.center]}>
+        <Stack.Screen options={{ headerShown: false }} />
         <ActivityIndicator size="large" color="#4F46E5" />
       </SafeAreaView>
     );
@@ -49,6 +50,7 @@ export default function SellerProfileScreen() {
   if (notFound || !profile) {
     return (
       <SafeAreaView style={[styles.safe, styles.center]}>
+        <Stack.Screen options={{ headerShown: false }} />
         <MaterialIcons name="person-off" size={48} color="#C0C6D4" />
         <Text style={styles.notFoundText}>Profile not found</Text>
         <Pressable onPress={() => router.back()}>
@@ -62,6 +64,7 @@ export default function SellerProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
         <Pressable style={styles.backBtn} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={22} color="#243047" />

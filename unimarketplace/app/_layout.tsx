@@ -57,6 +57,9 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding/email-verify" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding/profile-details" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding/profile-complete" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding/auth-callback" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding/forgot-password" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding/reset-password" options={{ headerShown: false }} />
         </Stack>
 
         {checking && (

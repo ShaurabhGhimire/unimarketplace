@@ -160,6 +160,10 @@ export default function AuthEntryScreen() {
             </Text>
           </Pressable>
 
+          <Pressable style={styles.forgotWrap} onPress={() => router.push('/onboarding/forgot-password')}>
+            <Text style={styles.forgotText}>Forgot Password?</Text>
+          </Pressable>
+
           <View style={styles.dividerWrap}>
             <View style={styles.divider} />
             <Text style={styles.dividerText}>or</Text>
@@ -275,5 +279,14 @@ const styles = StyleSheet.create({
     color: "#6368E8",
     fontSize: 14,
     fontWeight: "700",
+  },
+  forgotWrap: {
+    marginTop: 8,
+    alignItems: 'flex-end',
+  },
+  forgotText: {
+    color: "#6368E8",
+    fontSize: 13,
+    fontWeight: "600",
   },
 });

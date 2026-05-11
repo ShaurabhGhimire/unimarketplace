@@ -7,7 +7,7 @@ import { LayoutChangeEvent, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getAccessToken } from '@/lib/auth-storage';
-import { API_BASE_URL, getBackendHealth, getListings, type ListingFilters } from '@/lib/api';
+import { getBackendHealth, getListings, type ListingFilters } from '@/lib/api';
 import { categoryFilters, type MarketplaceItem } from '@/data/mock';
 import { useOnboarding } from '@/lib/onboarding-context';
 
@@ -23,7 +23,7 @@ export default function BrowseScreen() {
   const [moveOutDeals, setMoveOutDeals] = useState(false);
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [items, setItems] = useState<MarketplaceItem[]>([]);
-  const [apiStatus, setApiStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  const [sortOrder, setSortOrder] = useState<'default' | 'price_asc' | 'price_desc'>('default');
   const [scrollY, setScrollY] = useState(0);
   const [headerHeight, setHeaderHeight] = useState(196);
 
@@ -35,10 +35,8 @@ export default function BrowseScreen() {
       try {
         await getBackendHealth();
         if (!mounted) return;
-        setApiStatus('online');
       } catch {
         if (!mounted) return;
-        setApiStatus('offline');
         return;
       }
 
@@ -88,7 +86,7 @@ export default function BrowseScreen() {
   const hideFilters = scrollY > 12;
 
   const filteredItems = useMemo(() => {
-    return items.filter((item) => {
+    const filtered = items.filter((item) => {
       const matchesQuery =
         !query.trim() ||
         item.title.toLowerCase().includes(query.toLowerCase()) ||
@@ -97,7 +95,10 @@ export default function BrowseScreen() {
       const matchesMoveOut = !moveOutDeals || Boolean(item.daysLeft);
       return matchesQuery && matchesCategory && matchesMoveOut;
     });
-  }, [activeCategory, items, moveOutDeals, query]);
+    if (sortOrder === 'price_asc') return [...filtered].sort((a, b) => a.price - b.price);
+    if (sortOrder === 'price_desc') return [...filtered].sort((a, b) => b.price - a.price);
+    return filtered;
+  }, [activeCategory, items, moveOutDeals, query, sortOrder]);
 
   function handleHeaderLayout(event: LayoutChangeEvent) {
     setHeaderHeight(event.nativeEvent.layout.height);
@@ -175,12 +176,19 @@ export default function BrowseScreen() {
             <Text style={[styles.moveOutText, moveOutDeals ? styles.moveOutTextActive : null]}>Move-Out</Text>
           </Pressable>
 
-          <View style={styles.statusWrap}>
-            <View style={[styles.statusDot, apiStatus === 'online' ? styles.statusOnline : styles.statusOffline]} />
-            <Text style={styles.statusText}>
-              {apiStatus === 'checking' ? 'Checking backend' : apiStatus === 'online' ? 'Backend connected' : 'Mock mode'}
+          <Pressable
+            style={[styles.sortPill, sortOrder !== 'default' ? styles.sortPillActive : null]}
+            onPress={() => setSortOrder(s => s === 'default' ? 'price_asc' : s === 'price_asc' ? 'price_desc' : 'default')}>
+            <MaterialIcons
+              name={sortOrder === 'price_asc' ? 'arrow-upward' : sortOrder === 'price_desc' ? 'arrow-downward' : 'swap-vert'}
+              size={14}
+              color={sortOrder !== 'default' ? '#FFFFFF' : '#5C677D'}
+            />
+            <Text style={[styles.sortText, sortOrder !== 'default' ? styles.sortTextActive : null]}>
+              {sortOrder === 'price_asc' ? 'Price: Low–High' : sortOrder === 'price_desc' ? 'Price: High–Low' : 'Sort'}
             </Text>
-          </View>
+          </Pressable>
+
         </View>
       </View>
 
@@ -252,9 +260,7 @@ export default function BrowseScreen() {
           </View>
         ) : null}
 
-        <View style={styles.footerSpace}>
-          <Text style={styles.apiText}>{API_BASE_URL}</Text>
-        </View>
+        <View style={styles.footerSpace} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -574,5 +580,28 @@ const styles = StyleSheet.create({
   apiText: {
     color: '#94A0B2',
     fontSize: 11,
+  },
+  sortPill: {
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: '#D7DEE7',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  sortPillActive: {
+    backgroundColor: '#4F46E5',
+    borderColor: '#4F46E5',
+  },
+  sortText: {
+    color: '#5C677D',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  sortTextActive: {
+    color: '#FFFFFF',
   },
 });

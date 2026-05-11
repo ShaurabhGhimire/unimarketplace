@@ -1,0 +1,23 @@
+{
+  "cli": {
+    "version": ">= 12.0.0"
+  },
+  "build": {
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://unimarketplace-backend.onrender.com",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://gtohydvublqprqqimgty.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b2h5ZHZ1YmxxcHJxcWltZ3R5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2NzI5MjEsImV4cCI6MjA4NjI0ODkyMX0.LPo9vAugAcOEd4oFIXKRlDFeTe_z8c6uspYAqSRoBFU"
+      },
+      "ios": {
+        "simulator": false,
+        "distribution": "store"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {}
+    }
+  }
+}

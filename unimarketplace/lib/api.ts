@@ -269,6 +269,20 @@ export async function getCurrentSession(accessToken: string) {
   });
 }
 
+export async function resetPasswordWithOtp(email: string, token: string, password: string) {
+  return request<ApiEnvelope<{ message: string }>>('/api/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ email, token, password }),
+  });
+}
+
+export async function forgotPassword(email: string) {
+  return request<ApiEnvelope<{ message: string }>>('/api/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
 export async function requestEduVerificationCode(email: string) {
   return request<ApiEnvelope<{ message: string }>>('/api/auth/request-otp', {
     method: 'POST',
