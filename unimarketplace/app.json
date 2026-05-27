@@ -10,6 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+      "buildNumber": "2",
       "bundleIdentifier": "com.unimarketplace.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -31,6 +32,12 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "UniMarketplace uses your photo library to upload photos of items you want to sell and to set your profile picture."
+        }
+      ],
       [
         "expo-splash-screen",
         {
